@@ -12,7 +12,7 @@ public class GamingTounamentApplication {
     public static void main(String[] args) {
         SpringApplication.run(GamingTounamentApplication.class, args);
     }
-@GetMapping("/")
+@GetMapping("/api")
     public String apiRoot()
 {
     return "hello";
