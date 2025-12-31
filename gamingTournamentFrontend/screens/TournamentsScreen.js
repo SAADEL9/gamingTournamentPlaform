@@ -1,7 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
+
 import api from "../api/api";
-import { Button } from "react-native-paper";
+
+const sanitizeTournament = (item, index) => {
+  try {
+    return {
+      _id: item._id || item.id || `fallback-id-${index}-${Math.random()}`,
+      name: String(item.name || "Tournament"),
+      game: String(item.game || ""),
+      maxPlayers: Number(item.maxPlayers) || 0,
+      prize: String(item.prize || ""),
+      status: String(item.status || ""),
+    };
+  } catch (e) {
+    return { _id: `error-${index}`, name: "Error" };
+  }
+};
 
 export default function TournamentsScreen({ navigation }) {
   const [tournaments, setTournaments] = useState([]);
@@ -12,22 +27,36 @@ export default function TournamentsScreen({ navigation }) {
     try {
       setLoading(true);
       const res = await api.get("/tournament");
-      setTournaments(res.data || []);
+      if (Array.isArray(res.data)) {
+        setTournaments(res.data.map((item, index) => sanitizeTournament(item, index)));
+      } else {
+        setTournaments([]);
+      }
     } catch (err) {
-      setError(err.response?.data || err.message);
+      console.error("Error:", err.message);
+      setError(err.message || "Cannot connect to server");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={{ marginRight: 10 }}>
+          <Text style={{ color: '#4A90E2', fontWeight: 'bold' }}>Profile</Text>
+        </TouchableOpacity>
+      ),
+    });
     loadTournaments();
-  }, []);
+  }, [navigation]);
+
 
   if (loading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />
+        <Text>Loading...</Text>
       </View>
     );
   }
@@ -35,7 +64,8 @@ export default function TournamentsScreen({ navigation }) {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text>Error: {String(error)}</Text>
+        <Text style={styles.error}>Error: {error}</Text>
+        <Text style={styles.hint}>Is backend running at 192.168.11.109:8080?</Text>
       </View>
     );
   }
@@ -44,19 +74,14 @@ export default function TournamentsScreen({ navigation }) {
     <View style={styles.container}>
       <FlatList
         data={tournaments}
-        keyExtractor={(item, index) => (item.id || item._id || index).toString()}
+        keyExtractor={(item) => String(item._id)}
         renderItem={({ item }) => (
           <View style={styles.item}>
-            <Text style={styles.title}>{item.name || item.title || "Tournament"}</Text>
-            {item.description ? <Text>{item.description}</Text> : null}
+            <Text style={styles.title}>{item.name}</Text>
+            {item.game && <Text>{item.game}</Text>}
           </View>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>No tournaments found.</Text>}
       />
-       <Button
-              title="Go to home page"
-              onPress={() => navigation.navigate("Home")}
-            />
     </View>
   );
 }
@@ -64,7 +89,9 @@ export default function TournamentsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#fff" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  item: { padding: 12, borderBottomWidth: 1, borderBottomColor: "#eee" },
+  item: { padding: 12, marginBottom: 8, borderRadius: 8, backgroundColor: "#f0f0f0" },
   title: { fontSize: 16, fontWeight: "600" },
-  empty: { textAlign: "center", marginTop: 20 },
+  error: { color: "red", fontSize: 14, marginBottom: 10 },
+  hint: { color: "#666", fontSize: 12 },
 });
+
