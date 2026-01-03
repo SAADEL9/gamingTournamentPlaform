@@ -8,7 +8,10 @@ import HomeScreen from '../screens/HomeScreen';
 import TournamentsScreen from "../screens/TournamentsScreen";
 import AuthScreen from "../screens/AuthScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import AdminScreen from "../screens/AdminScreen";
+import AddEditTournamentScreen from "../screens/AddEditTournamentScreen";
 
+const ADMIN_EMAIL = "admin@admin.com";
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -27,16 +30,22 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName={user ? "Tournaments" : "Auth"}>
-        {user ? (
+      <Stack.Navigator>
+        {!user ? (
+          // 🛑 Not Logged In
+          <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
+        ) : user.email === ADMIN_EMAIL ? (
+          // 🛡️ Admin Stack
+          <>
+            <Stack.Screen name="Admin" component={AdminScreen} options={{ title: 'Admin Dashboard' }} />
+            <Stack.Screen name="AddEditTournament" component={AddEditTournamentScreen} options={{ title: 'Manage Tournament' }} />
+          </>
+        ) : (
+          // 👤 User Stack
           <>
             <Stack.Screen name="Tournaments" component={TournamentsScreen} options={{ title: 'Tournaments' }} />
             <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Public Profile' }} />
             <Stack.Screen name="Home" component={HomeScreen} />
-          </>
-        ) : (
-          <>
-            <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
           </>
         )}
       </Stack.Navigator>

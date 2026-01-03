@@ -29,9 +29,12 @@ export default function AuthScreen() {
     const [loading, setLoading] = useState(false);
     const [isLogin, setIsLogin] = useState(true);
 
+    const [error, setError] = useState(null);
+
     const toggleAuthMode = () => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setIsLogin(!isLogin);
+        setError(null);
     };
 
     /* 💾 Sauvegarde les infos de l'utilisateur dans Firestore */
@@ -55,18 +58,20 @@ export default function AuthScreen() {
             }
         } catch (error) {
             console.error("Error saving user data:", error);
+            setError("Error saving user data: " + error.message);
         }
     };
 
     /* 📧 Gestion Connexion / Inscription par Email */
     const handleEmailSignUp = async () => {
+        setError(null);
         if (!email || !password || !name) {
-            Alert.alert("Incomplete", "Please fill in all fields including your name.");
+            setError("Please fill in all fields including your name.");
             return;
         }
 
         if (password.length < 6) {
-            Alert.alert("Weak Password", "Password should be at least 6 characters.");
+            setError("Password should be at least 6 characters.");
             return;
         }
 
@@ -85,15 +90,16 @@ export default function AuthScreen() {
             navigation.replace("Tournaments");
         } catch (error) {
             console.log("Registration Error:", error.code);
-            Alert.alert("Registration Failed", error.message);
+            setError(error.message);
         } finally {
             setLoading(false);
         }
     };
 
     const handleEmailLogin = async () => {
+        setError(null);
         if (!email || !password) {
-            Alert.alert("Missing Info", "Please enter both email and password.");
+            setError("Please enter both email and password.");
             return;
         }
         setLoading(true);
@@ -106,7 +112,7 @@ export default function AuthScreen() {
             navigation.replace("Tournaments");
         } catch (error) {
             console.log("Login Error:", error.message);
-            Alert.alert("Login Failed", "Invalid email or password.");
+            setError("Invalid email or password.");
         } finally {
             setLoading(false);
         }
@@ -196,6 +202,10 @@ export default function AuthScreen() {
                             secureTextEntry
                         />
                     </View>
+
+                    {error && (
+                        <Text style={{ color: 'red', textAlign: 'center', marginBottom: 10 }}>{error}</Text>
+                    )}
 
                     {loading ? (
                         <ActivityIndicator size="large" color="#4A90E2" style={{ marginVertical: 20 }} />

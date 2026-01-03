@@ -4,6 +4,8 @@ import { auth } from "../firebase";
 import { IconSymbol } from '../components/IconSymbol';
 import { useNavigation } from "@react-navigation/native";
 
+const ADMIN_EMAIL = "admin@admin.com";
+
 export default function ProfileScreen() {
     const navigation = useNavigation();
     const user = auth.currentUser;
@@ -49,6 +51,15 @@ export default function ProfileScreen() {
                     </View>
 
                     <View style={{ marginTop: 30 }}>
+                        {user.email === ADMIN_EMAIL && (
+                            <TouchableOpacity
+                                style={[styles.primaryButton, { backgroundColor: '#2D3748', marginBottom: 15 }]}
+                                onPress={() => navigation.navigate('Admin')}
+                            >
+                                <Text style={styles.buttonText}>Admin Dashboard</Text>
+                            </TouchableOpacity>
+                        )}
+
                         <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#E53E3E' }]} onPress={handleLogout}>
                             <Text style={styles.buttonText}>Log Out</Text>
                         </TouchableOpacity>
