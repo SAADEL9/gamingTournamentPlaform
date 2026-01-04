@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback, useLayoutEffect } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import api from "../api/api";
-import { IconSymbol } from '../components/IconSymbol';
 
 export default function AdminScreen({ navigation }) {
     const [tournaments, setTournaments] = useState([]);
@@ -23,7 +23,7 @@ export default function AdminScreen({ navigation }) {
         navigation.setOptions({
             headerRight: () => (
                 <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-                    <IconSymbol name="rectangle.portrait.and.arrow.right" size={24} color="#E53E3E" />
+                    <MaterialCommunityIcons name="logout" size={24} color="#E53E3E" />
                 </TouchableOpacity>
             ),
         });
@@ -48,28 +48,19 @@ export default function AdminScreen({ navigation }) {
         }, [])
     );
 
-    const handleDelete = (id) => {
-        Alert.alert(
-            "Delete Tournament",
-            "This action cannot be undone.",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            await api.delete(`/tournament/delete/${id}`);
-                            setTournaments((prev) => prev.filter((t) => (t.id || t._id) !== id));
-                            Alert.alert("Deleted", "The tournament has been removed.");
-                        } catch (err) {
-                            console.error(err);
-                            Alert.alert("Error", "Failed to delete tournament");
-                        }
-                    },
-                },
-            ]
-        );
+    const handleDelete = async (id) => {
+        const confirmed = window.confirm("Delete Tournament\n\nThis action cannot be undone. Are you sure?");
+
+        if (confirmed) {
+            try {
+                await api.delete(`/tournament/delete/${id}`);
+                setTournaments((prev) => prev.filter((t) => (t.id || t._id) !== id));
+                window.alert("Deleted\n\nThe tournament has been removed.");
+            } catch (err) {
+                console.error(err);
+                window.alert("Error\n\nFailed to delete tournament");
+            }
+        }
     };
 
     if (loading) {

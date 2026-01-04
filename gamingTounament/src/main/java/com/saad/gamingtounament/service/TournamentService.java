@@ -15,4 +15,6 @@ public interface TournamentService {
     public Tournament updateTournament(String id, Tournament tournament);
 
     public void deleteTournament(String id);
+
+    public void joinTournament(String tournamentId, String userEmail, String teamName, List<String> teammates);
 }

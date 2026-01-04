@@ -19,8 +19,15 @@ public class TournamentController {
     private TournamentService tournamentService;
 
     @GetMapping
-    public ResponseEntity<List<Tournament>> getAllTournaments() {
-        return new ResponseEntity<List<Tournament>>(tournamentService.allTournaments(), HttpStatus.OK);
+    public ResponseEntity<?> getAllTournaments() {
+        try {
+            List<Tournament> tournaments = tournamentService.allTournaments();
+            return new ResponseEntity<>(tournaments, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>("Error fetching tournaments: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @GetMapping("/{id}")
@@ -48,5 +55,32 @@ public class TournamentController {
     public ResponseEntity<Void> deleteTournament(@PathVariable String id) {
         tournamentService.deleteTournament(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PostMapping("/{id}/join")
+    public ResponseEntity<String> joinTournament(@PathVariable String id,
+            @RequestBody java.util.Map<String, Object> payload) {
+        try {
+            String email = (String) payload.get("email");
+            String teamName = (String) payload.get("teamName");
+            List<String> teammates = (List<String>) payload.get("teammates");
+
+            System.out.println("Join request for tournament: " + id);
+            System.out.println("Email: " + email);
+            System.out.println("TeamName: " + teamName);
+            System.out.println("Teammates: " + teammates);
+
+            if (email == null) {
+                return new ResponseEntity<>("Email required", HttpStatus.BAD_REQUEST);
+            }
+            tournamentService.joinTournament(id, email, teamName, teammates);
+            return new ResponseEntity<>("Joined successfully", HttpStatus.OK);
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>("Error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
