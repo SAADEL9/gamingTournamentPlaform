@@ -7,6 +7,7 @@ import java.util.Optional;
 // This defines the contract for the service. No implementation here.
 public interface TournamentService {
     List<Tournament> allTournaments();
+    List<Tournament> getTournamentsByUser(String userEmail);
 
     Optional<Tournament> singleTournament(String id);
 

@@ -1,28 +1,19 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, RefreshControl, StatusBar, Image } from "react-native";
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+  RefreshControl,
+  StatusBar,
+  Image,
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import api from "../api/api";
 import { auth } from "../firebase";
-
-const sanitizeTournament = (item, index) => {
-  try {
-    return {
-      _id: item._id || item.id || `fallback-id-${index}-${Math.random()}`,
-      id: item.id || item._id,
-      name: String(item.name || "Tournament"),
-      game: String(item.game || "Game"),
-      maxPlayers: Number(item.maxPlayers) || 0,
-      prize: String(item.prize || "N/A"),
-      status: String(item.status || "Pending"),
-      participants: Array.isArray(item.participants) ? item.participants : [],
-      teamSize: Number(item.teamSize) || 1,
-      teams: Array.isArray(item.teams) ? item.teams : [],
-    };
-  } catch (e) {
-    return { _id: `error-${index}`, name: "Error" };
-  }
-};
 
 const getStatusColor = (status) => {
   switch (status?.toLowerCase()) {
@@ -33,7 +24,7 @@ const getStatusColor = (status) => {
   }
 };
 
-export default function TournamentsScreen() {
+export default function MyTournamentsScreen() {
   const navigation = useNavigation();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,15 +35,23 @@ export default function TournamentsScreen() {
     try {
       if (!refreshing) setLoading(true);
       setError(null);
-      const res = await api.get("/tournament");
-      if (Array.isArray(res.data)) {
-        setTournaments(res.data.map((item, index) => sanitizeTournament(item, index)));
-      } else {
+      const user = auth.currentUser;
+
+      if (!user?.email) {
         setTournaments([]);
+        return;
       }
+
+      console.log("Fetching my tournaments for:", user.email);
+      // Ensure the path matches the backend controller: /api/tournament/my-tournaments
+      const res = await api.get("/tournament/my-tournaments", {
+        params: { userEmail: user.email },
+      });
+
+      setTournaments(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error:", err.message);
-      setError(err.message || "Cannot connect to server");
+      setError("Impossible de charger les tournois");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -73,11 +72,11 @@ export default function TournamentsScreen() {
   useEffect(() => {
     const user = auth.currentUser;
     navigation.setOptions({
-      headerTitle: "Available Tournaments",
+      headerTitle: "My Tournaments",
       headerStyle: { backgroundColor: '#F7FAFC', elevation: 0, shadowOpacity: 0 },
       headerTitleStyle: { fontWeight: '800', fontSize: 22, color: '#2D3748' },
       headerRight: () => (
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={{ marginRight: 15 }}>
+        <TouchableOpacity onPress={() => navigation.navigate("Profile")} style={{ marginRight: 15 }}>
           <View style={styles.profileButton}>
             {user?.photoURL ? (
               <Image
@@ -93,19 +92,22 @@ export default function TournamentsScreen() {
     });
   }, [navigation]);
 
-
   const renderItem = ({ item }) => (
-    <View style={styles.card}>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      style={styles.card}
+      onPress={() => navigation.navigate("TournamentDetail", { tournament: item })}
+    >
       <View style={styles.cardHeader}>
         <View style={[styles.iconContainer, { backgroundColor: '#4A90E2' }]}>
           <MaterialCommunityIcons name="controller-classic" size={24} color="#FFF" />
         </View>
         <View style={styles.headerContent}>
-          <Text style={styles.gameTitle}>{item.game}</Text>
+          <Text style={styles.gameTitle}>{item.game || "Game"}</Text>
           <Text style={styles.tournamentName} numberOfLines={1}>{item.name}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status || "Joined"}</Text>
         </View>
       </View>
 
@@ -115,44 +117,22 @@ export default function TournamentsScreen() {
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
             <MaterialCommunityIcons name="account-group" size={18} color="#718096" />
-            <Text style={styles.metaText}>{item.maxPlayers} Joueurs</Text>
+            <Text style={styles.metaText}>{item.participants?.length || 0} participants</Text>
           </View>
           <View style={styles.metaItem}>
             <MaterialCommunityIcons name="trophy" size={18} color="#ECC94B" />
-            <Text style={styles.metaText}>{item.prize}</Text>
+            <Text style={styles.metaText}>{item.prize || "Prizes"}</Text>
           </View>
         </View>
-
-        <TouchableOpacity
-          style={styles.joinButton}
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate('TournamentDetail', { tournament: item })}
-        >
-          <Text style={styles.joinButtonText}>Voir Détails</Text>
-          <MaterialCommunityIcons name="arrow-right" size={20} color="#FFF" />
-        </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   if (loading && !refreshing) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#4A90E2" />
-        <Text style={styles.loadingText}>Chargement des tournois...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.center}>
-        <MaterialCommunityIcons name="alert-circle-outline" size={60} color="#E53E3E" />
-        <Text style={styles.errorText}>Oups ! Une erreur est survenue.</Text>
-        <Text style={styles.errorDetail}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadTournaments}>
-          <Text style={styles.retryButtonText}>Réessayer</Text>
-        </TouchableOpacity>
+        <Text style={styles.loadingText}>Chargement de vos tournois...</Text>
       </View>
     );
   }
@@ -162,7 +142,7 @@ export default function TournamentsScreen() {
       <StatusBar barStyle="dark-content" backgroundColor="#F7FAFC" />
       <FlatList
         data={tournaments}
-        keyExtractor={(item) => String(item._id)}
+        keyExtractor={(item) => String(item._id || item.id)}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
@@ -172,7 +152,13 @@ export default function TournamentsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="trophy-broken" size={60} color="#CBD5E0" />
-            <Text style={styles.emptyText}>Aucun tournoi disponible pour le moment.</Text>
+            <Text style={styles.emptyText}>Vous n'avez rejoint aucun tournoi pour le moment.</Text>
+            <TouchableOpacity
+              style={styles.browseButton}
+              onPress={() => navigation.navigate("Tournaments")}
+            >
+              <Text style={styles.browseButtonText}>Parcourir les tournois</Text>
+            </TouchableOpacity>
           </View>
         }
       />
@@ -271,48 +257,10 @@ const styles = StyleSheet.create({
     color: '#4A5568',
     fontWeight: '500'
   },
-  joinButton: {
-    backgroundColor: '#4A90E2',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 14,
-    gap: 8,
-    marginTop: 8
-  },
-  joinButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '700'
-  },
   loadingText: {
     marginTop: 12,
     color: '#718096',
     fontSize: 16
-  },
-  errorText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#2D3748',
-    marginTop: 16
-  },
-  errorDetail: {
-    fontSize: 14,
-    color: '#718096',
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 20
-  },
-  retryButton: {
-    backgroundColor: '#4A90E2',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10
-  },
-  retryButtonText: {
-    color: 'white',
-    fontWeight: '700'
   },
   emptyContainer: {
     alignItems: 'center',
@@ -324,10 +272,21 @@ const styles = StyleSheet.create({
     color: '#A0AEC0',
     fontSize: 16,
     textAlign: 'center',
-    width: '70%'
+    width: '70%',
+    marginBottom: 20
   },
   profileButton: {
     padding: 4
+  },
+  browseButton: {
+    backgroundColor: '#4A90E2',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  browseButtonText: {
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 16
   }
 });
-

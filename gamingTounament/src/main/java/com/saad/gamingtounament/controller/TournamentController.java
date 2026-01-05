@@ -9,8 +9,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.http.HttpRequest;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RequestMapping("/api/tournament")
 @RestController
@@ -28,6 +30,10 @@ public class TournamentController {
             return new ResponseEntity<>("Error fetching tournaments: " + e.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+    @GetMapping("/my-tournaments")
+    public ResponseEntity<List<Tournament>> userTournaments(@RequestParam String userEmail) {
+        return ResponseEntity.ok(tournamentService.getTournamentsByUser(userEmail));
     }
 
     @GetMapping("/{id}")

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 // This is the actual service component, marked with @Service
 @Service
@@ -25,7 +26,17 @@ public class TournamentServiceImpl implements TournamentService {
     public List<Tournament> allTournaments() {
         return tournamentRepository.findAll();
     }
-
+    @Override
+    public List<Tournament> getTournamentsByUser(String userEmail) {
+        return allTournaments().stream()
+                .filter(t -> {
+                    boolean inParticipants = t.getParticipants() != null && t.getParticipants().contains(userEmail);
+                    boolean inTeams = t.getTeams() != null && t.getTeams().stream()
+                            .anyMatch(team -> team.getMembers() != null && team.getMembers().contains(userEmail));
+                    return inParticipants || inTeams;
+                })
+                .collect(Collectors.toList());
+    }
     @Override
     public Optional<Tournament> singleTournament(String id) {
         return tournamentRepository.findById(id);

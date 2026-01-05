@@ -87,7 +87,6 @@ export default function AuthScreen() {
             console.log("Registered with:", userCredential.user.email);
             // ⚡ Don't await DB write - let user in immediately!
             saveUserData(userCredential.user, name);
-            navigation.replace("Tournaments");
         } catch (error) {
             console.log("Registration Error:", error.code);
             setError(error.message);
@@ -109,7 +108,6 @@ export default function AuthScreen() {
 
             // ⚡ Don't await DB write - let user in immediately!
             saveUserData(userCredential.user);
-            navigation.replace("Tournaments");
         } catch (error) {
             console.log("Login Error:", error.message);
             setError("Invalid email or password.");
@@ -141,7 +139,6 @@ export default function AuthScreen() {
             signInWithCredential(auth, credential)
                 .then((userCredential) => {
                     saveUserData(userCredential.user);
-                    navigation.replace("Tournaments");
                 })
                 .catch((error) => console.log("Google Sign-In Error", error));
         }

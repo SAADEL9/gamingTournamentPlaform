@@ -28,7 +28,7 @@ export default function ProfileScreen() {
     const handleLogout = async () => {
         try {
             await signOut(auth);
-            navigation.replace("Auth");
+            // AppNavigator will automatically handle the switch to Auth screen
         } catch (error) {
             console.error("Error signing out: ", error);
         }
@@ -184,6 +184,13 @@ export default function ProfileScreen() {
                                         <Text style={styles.buttonText}>Admin Dashboard</Text>
                                     </TouchableOpacity>
                                 )}
+
+                                <TouchableOpacity
+                                    style={[styles.primaryButton, { backgroundColor: '#4A90E2', marginBottom: 15 }]}
+                                    onPress={() => navigation.navigate('myTournaments')}
+                                >
+                                    <Text style={styles.buttonText}>My Tournaments</Text>
+                                </TouchableOpacity>
 
                                 <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#E53E3E' }]} onPress={handleLogout}>
                                     <Text style={styles.buttonText}>Log Out</Text>

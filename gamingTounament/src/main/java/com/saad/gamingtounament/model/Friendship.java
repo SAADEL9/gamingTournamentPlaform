@@ -5,12 +5,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.List;
-@Document(collection = "Team")
+import java.time.LocalDate;
+@Document(collection = "Friendship")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Team {
-    private String name;
-    private List<String> members; // List of user emails
+public class Friendship {
+    private String id;
+    private String  user1Id;
+    private String  user2Id;
+    private LocalDate createdAt;
 }

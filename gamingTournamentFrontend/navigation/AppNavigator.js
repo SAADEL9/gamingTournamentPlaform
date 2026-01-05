@@ -11,8 +11,9 @@ import ProfileScreen from "../screens/ProfileScreen";
 import AdminScreen from "../screens/AdminScreen";
 import AddEditTournamentScreen from "../screens/AddEditTournamentScreen";
 import TournamentDetailScreen from "../screens/TournamentDetailScreen";
+import MyTournamentsScreen from "../screens/myTournamentsScreen";
 
-const ADMIN_EMAIL = "admin@admin.com";
+const ADMIN_EMAIL = "admin@gmail.com";
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -44,10 +45,11 @@ export default function AppNavigator() {
         ) : (
           // 👤 User Stack
           <>
+            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="myTournaments" component={MyTournamentsScreen} options={{ title: 'My Tournaments' }} />
             <Stack.Screen name="Tournaments" component={TournamentsScreen} options={{ title: 'Tournaments' }} />
             <Stack.Screen name="TournamentDetail" component={TournamentDetailScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Public Profile' }} />
-            <Stack.Screen name="Home" component={HomeScreen} />
           </>
         )}
       </Stack.Navigator>
