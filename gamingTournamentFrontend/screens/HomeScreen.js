@@ -21,6 +21,11 @@ export default function HomeScreen({ navigation }) {
           onPress={() => navigation.navigate("Profile")}
           color="#2D3748"
         />
+        <Button
+          title="Find Friends"
+          onPress={() => navigation.navigate("AddFriend")}
+          color="#4299E1"
+        />
       </View>
     </View>
   );

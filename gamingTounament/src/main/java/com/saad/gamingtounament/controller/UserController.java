@@ -28,6 +28,11 @@ public class UserController {
         return user != null ? new ResponseEntity<>(user, HttpStatus.OK) : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<java.util.List<User>> searchUsers(@RequestParam String query) {
+        return new ResponseEntity<>(userService.searchUsers(query), HttpStatus.OK);
+    }
+
     @PostMapping("/teammate/add")
     public ResponseEntity<String> addTeammate(@RequestBody Map<String, String> payload) {
         String userEmail = payload.get("userEmail");

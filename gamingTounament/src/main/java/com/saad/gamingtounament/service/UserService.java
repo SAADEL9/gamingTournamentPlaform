@@ -6,12 +6,39 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.ArrayList;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.FirebaseToken;
 import java.util.Optional;
 
 @Service
 public class UserService {
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private FirebaseAuthService firebaseAuthService;
+
+    public User loginUser(String token) throws FirebaseAuthException {
+        FirebaseToken decodedToken = firebaseAuthService.verifyToken(token);
+        String uid = decodedToken.getUid();
+        String email = decodedToken.getEmail();
+        String name = decodedToken.getName();
+        String picture = decodedToken.getPicture();
+
+        Optional<User> existingUser = userRepository.findByFirebaseUid(uid);
+        if (existingUser.isPresent()) {
+            return existingUser.get();
+        } else {
+            User newUser = new User();
+            newUser.setFirebaseUid(uid);
+            newUser.setEmail(email);
+            newUser.setDisplayName(name);
+            newUser.setPhotoUrl(picture);
+            newUser.setTeammates(new ArrayList<>());
+            newUser.setCreatedAt(new java.util.Date());
+            return userRepository.save(newUser);
+        }
+    }
 
     public User getOrCreateUser(String email, String displayName, String photoUrl) {
         Optional<User> userOpt = userRepository.findByEmail(email);
@@ -46,5 +73,18 @@ public class UserService {
             user.getTeammates().remove(teammateEmail);
             userRepository.save(user);
         }
+    }
+
+    public List<User> searchUsers(String query) {
+        List<User> byName = userRepository.findByDisplayNameContainingIgnoreCase(query);
+        List<User> byEmail = userRepository.findByEmailContainingIgnoreCase(query);
+
+        List<User> results = new ArrayList<>(byName);
+        for (User user : byEmail) {
+            if (!results.contains(user)) {
+                results.add(user);
+            }
+        }
+        return results;
     }
 }
