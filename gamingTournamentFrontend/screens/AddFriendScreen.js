@@ -18,7 +18,7 @@ export default function AddFriendScreen({ navigation }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
-
+    const user = auth.currentUser;
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
 
@@ -35,13 +35,27 @@ export default function AddFriendScreen({ navigation }) {
         }
     };
 
-    const handleAddFriend = (user) => {
-        // Placeholder for user's implementation
-        console.log("Add friend clicked for:", user.email);
-        Alert.alert("Info", "Friend request logic to be implemented by user.");
+    const handleAddFriend = async (user, item) => {
+        setLoading(true);
+        try {
+            const response = await api.post("/friend-request/create", {
+                senderid: user.uid,
+                receiverid: item.firebaseUid
+            });
+            Alert.alert("Success", "Friend request sent!");
+            console.log("Success", "Friend request sent!");
+        }
+
+        catch (error) {
+            console.error(error);
+            Alert.alert("Error", error.response?.data?.message || error.message || "Failed to send friend request to user");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const renderItem = ({ item }) => (
+
         <View style={styles.userCard}>
             <Image
                 source={{ uri: item.photoUrl || 'https://via.placeholder.com/50' }}
@@ -53,9 +67,9 @@ export default function AddFriendScreen({ navigation }) {
             </View>
             <TouchableOpacity
                 style={styles.addButton}
-                onPress={() => handleAddFriend(item)}
+                onPress={() => handleAddFriend(user, item)}
             >
-                <Text style={styles.addButtonText}>Add</Text>
+                <Text onPress={() => handleAddFriend(user, item)} style={styles.addButtonText}>Add</Text>
             </TouchableOpacity>
         </View>
     );

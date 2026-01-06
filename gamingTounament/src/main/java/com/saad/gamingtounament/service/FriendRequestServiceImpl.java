@@ -29,7 +29,8 @@ public class FriendRequestServiceImpl implements FriendRequestService {
             throw new IllegalArgumentException("Cannot send a friend request to yourself.");
         }
 
-        // Validation: check if request already exists (sender → receiver OR receiver → sender)
+        // Validation: check if request already exists (sender → receiver OR receiver →
+        // sender)
         boolean exists = friendRequestRepository.existsBySenderIdAndReceiverId(senderid, receiverid)
                 || friendRequestRepository.existsBySenderIdAndReceiverId(receiverid, senderid);
         if (exists) {
@@ -41,7 +42,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
         request.setSenderId(senderid);
         request.setReceiverId(receiverid);
         request.setStatus("PENDING");
-        request.setCreatedAt(LocalDate.from(Instant.now()));
+        request.setCreatedAt(LocalDate.now());
 
         // Save to MongoDB
         return friendRequestRepository.save(request);
