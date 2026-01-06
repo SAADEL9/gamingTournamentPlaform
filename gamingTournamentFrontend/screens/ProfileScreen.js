@@ -5,6 +5,9 @@ import { auth } from "../firebase";
 import { useNavigation } from "@react-navigation/native";
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { storage } from "../firebase";
+import { ref, uploadBytes, getDownloadURL, uploadString } from "firebase/storage";
+import api from "../api/api";
 
 const ADMIN_EMAIL = "admin@admin.com";
 
@@ -16,12 +19,20 @@ export default function ProfileScreen() {
     const [isEditing, setIsEditing] = useState(false);
     const [displayName, setDisplayName] = useState(user?.displayName || "");
     const [photoURL, setPhotoURL] = useState(user?.photoURL || null);
+    const [imageBase64, setImageBase64] = useState(null);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (user) {
             setDisplayName(user.displayName || "");
             setPhotoURL(user.photoURL || null);
+
+            // Auto-sync user to backend to ensure they exist in DB
+            api.post('/user/sync', {
+                email: user.email,
+                displayName: user.displayName || "",
+                photoUrl: user.photoURL || null
+            }).catch(err => console.error("Auto-sync failed:", err));
         }
     }, [user]);
 
@@ -31,6 +42,22 @@ export default function ProfileScreen() {
             // AppNavigator will automatically handle the switch to Auth screen
         } catch (error) {
             console.error("Error signing out: ", error);
+        }
+    };
+
+    const uploadImageAsync = async (base64Image) => {
+        try {
+            const fileRef = ref(storage, `profile_images/${user.uid}/${Date.now()}`);
+            // uploadString requires format 'base64' if the string is raw base64
+            // or 'data_url' if it includes "data:image/..." prefix.
+            // ImagePicker base64 is usually raw.
+            await uploadString(fileRef, base64Image, 'base64');
+
+            const downloadUrl = await getDownloadURL(fileRef);
+            return downloadUrl;
+        } catch (error) {
+            console.error("Error uploading image: ", error);
+            throw error;
         }
     };
 
@@ -46,10 +73,12 @@ export default function ProfileScreen() {
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.5,
+            base64: true,
         });
 
         if (!result.canceled) {
             setPhotoURL(result.assets[0].uri);
+            setImageBase64(result.assets[0].base64);
         }
     };
 
@@ -61,9 +90,22 @@ export default function ProfileScreen() {
 
         setLoading(true);
         try {
+            let url = photoURL;
+            if (imageBase64) {
+                url = await uploadImageAsync(imageBase64);
+            }
+
             await updateProfile(user, {
                 displayName: displayName,
-                photoURL: photoURL
+                photoURL: url
+            });
+
+            // Sync with backend if needed, or just update local auth state is handled by firebase
+            // Ideally we should also call the backend /sync endpoint if we want the backend to know about the new photo URL immediately
+            await api.post('/user/sync', {
+                email: user.email,
+                displayName: displayName,
+                photoUrl: url
             });
             setIsEditing(false);
             Alert.alert("Success", "Profile updated successfully!");
@@ -89,7 +131,11 @@ export default function ProfileScreen() {
                 <View style={styles.header}>
                     <TouchableOpacity onPress={isEditing ? pickImage : null} disabled={!isEditing} style={styles.avatarContainer}>
                         {photoURL ? (
-                            <Image source={{ uri: photoURL }} style={styles.avatar} />
+                            <Image
+                                source={{ uri: photoURL }}
+                                style={styles.avatar}
+                                onError={() => setPhotoURL(null)} // Fallback to placeholder on error
+                            />
                         ) : (
                             <View style={[styles.avatar, styles.avatarPlaceholder]}>
                                 <MaterialCommunityIcons name="account" size={60} color="#FFF" />

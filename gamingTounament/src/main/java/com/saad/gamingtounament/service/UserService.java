@@ -41,12 +41,19 @@ public class UserService {
     }
 
     public User getOrCreateUser(String email, String displayName, String photoUrl) {
+        System.out.println("DEBUG: Syncing user " + email);
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isPresent()) {
-            return userOpt.get();
+            System.out.println("DEBUG: User exists, updating.");
+            User user = userOpt.get();
+            // Optionally update fields if changed
+            return user;
         } else {
+            System.out.println("DEBUG: Creating NEW user for " + email);
             User newUser = new User(email, displayName, photoUrl);
-            return userRepository.save(newUser);
+            User savedUser = userRepository.save(newUser);
+            System.out.println("DEBUG: Saved user ID: " + savedUser.getId());
+            return savedUser;
         }
     }
 
@@ -76,6 +83,8 @@ public class UserService {
     }
 
     public List<User> searchUsers(String query) {
+        System.out.println("DEBUG: Searching for '" + query + "'");
+        System.out.println("DEBUG: Total users in DB: " + userRepository.count());
         List<User> byName = userRepository.findByDisplayNameContainingIgnoreCase(query);
         List<User> byEmail = userRepository.findByEmailContainingIgnoreCase(query);
 

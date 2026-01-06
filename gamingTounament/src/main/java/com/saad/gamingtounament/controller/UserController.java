@@ -10,6 +10,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/user")
+@CrossOrigin(originPatterns = "*")
 public class UserController {
     @Autowired
     private UserService userService;
@@ -29,8 +30,15 @@ public class UserController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<java.util.List<User>> searchUsers(@RequestParam String query) {
-        return new ResponseEntity<>(userService.searchUsers(query), HttpStatus.OK);
+    public ResponseEntity<?> searchUsers(@RequestParam String query) {
+        try {
+            return new ResponseEntity<>(userService.searchUsers(query), HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(
+                    java.util.Collections.singletonMap("message", "Search failed: " + e.getMessage()),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PostMapping("/teammate/add")

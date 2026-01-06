@@ -24,12 +24,12 @@ export default function AddFriendScreen({ navigation }) {
 
         setLoading(true);
         try {
-            const response = await api.get(`/ user / search ? query = ${searchQuery} `);
+            const response = await api.get(`/user/search?query=${searchQuery}`);
             const filteredResults = response.data.filter(u => u.firebaseUid !== auth.currentUser?.uid);
             setResults(filteredResults);
         } catch (error) {
             console.error(error);
-            Alert.alert("Error", "Failed to search users");
+            Alert.alert("Error", error.response?.data?.message || error.message || "Failed to search users");
         } finally {
             setLoading(false);
         }
