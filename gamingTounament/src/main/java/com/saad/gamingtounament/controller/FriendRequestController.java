@@ -21,8 +21,19 @@ public class FriendRequestController {
             @org.springframework.web.bind.annotation.RequestBody java.util.Map<String, String> payload) {
         String senderid = payload.get("senderid");
         String receiverid = payload.get("receiverid");
+
+        if (senderid == null || senderid.trim().isEmpty() || receiverid == null || receiverid.trim().isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
         return new ResponseEntity<FriendRequest>(friendRequestService.createFriendRequest(senderid, receiverid),
                 HttpStatus.CREATED);
 
+    }
+
+    @GetMapping("/list/{userId}")
+    public ResponseEntity<java.util.List<FriendRequest>> getRequestsByUser(
+            @org.springframework.web.bind.annotation.PathVariable String userId) {
+        return new ResponseEntity<>(friendRequestService.getAllRequestsByUser(userId), HttpStatus.OK);
     }
 }

@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, TextInput, Modal, FlatList } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, TextInput, Modal, FlatList, ImageBackground, StatusBar } from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { auth } from "../firebase";
 import api from "../api/api";
 import { useNavigation } from "@react-navigation/native";
+import { COLORS, FONTS, SIZES, SHADOWS } from "../constants/theme";
+import { set } from "zod";
 
 export default function TournamentDetailScreen({ route }) {
     const { tournament } = route.params;
@@ -20,7 +23,7 @@ export default function TournamentDetailScreen({ route }) {
     // Saved Teammates
     const [savedTeammates, setSavedTeammates] = useState([]);
     const [loadingTeammates, setLoadingTeammates] = useState(false);
-
+    const [matches, setMatches] = useState([]);
     const teamSize = tournament.teamSize || 1;
     const isTeamMode = teamSize > 1;
 
@@ -34,7 +37,71 @@ export default function TournamentDetailScreen({ route }) {
             fetchSavedTeammates();
         }
     }, [showTeamModal]);
+    const showMatches = async (id) => {
+        setLoading(true);
+        try {
+            const res = await api.get(`/matches/tournament/${id}`);
+            setMatches(res.data);
+            setLoading(false);
+        } catch (e) {
+            console.log("Error fetching matches", e);
+        }
+    }
+    const [loading, setLoading] = useState(false);
 
+    // Group matches by round
+    const groupedMatches = matches.reduce((acc, match) => {
+        const round = match.round || 1;
+        if (!acc[round]) acc[round] = [];
+        acc[round].push(match);
+        return acc;
+    }, {});
+
+
+    const renderMatchItem = ({ item }) => {
+        const p1Score = item.score1 !== undefined ? item.score1 : '-';
+        const p2Score = item.score2 !== undefined ? item.score2 : '-';
+        const isCompleted = item.status === 'COMPLETED';
+        const winner = item.winnerId;
+
+        return (
+            <LinearGradient
+                colors={COLORS.gradientCard}
+                style={styles.matchCard}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            >
+                <View style={styles.matchHeader}>
+                    <Text style={styles.matchIdText}>Match #{item.id?.substring(item.id.length - 4)}</Text>
+                    <View style={[styles.matchStatusBadge, { backgroundColor: getStatusColor(item.status) + '30' }]}>
+                        <Text style={[styles.matchStatusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+                    </View>
+                </View>
+
+                <View style={styles.matchPlayersRow}>
+                    {/* Player 1 */}
+                    <View style={[styles.playerSide, winner === item.player1Id && styles.winnerSide]}>
+                        <Text style={[styles.playerName, winner === item.player1Id && styles.winnerText]} numberOfLines={1}>
+                            {item.player1Id || "Waiting..."}
+                        </Text>
+                        <Text style={[styles.playerScore, winner === item.player1Id && styles.winnerScore]}>{p1Score}</Text>
+                        {winner === item.player1Id && <MaterialCommunityIcons name="crown" size={16} color={COLORS.warning} />}
+                    </View>
+
+                    <Text style={styles.vsText}>VS</Text>
+
+                    {/* Player 2 */}
+                    <View style={[styles.playerSide, winner === item.player2Id && styles.winnerSide]}>
+                        <Text style={[styles.playerScore, winner === item.player2Id && styles.winnerScore]}>{p2Score}</Text>
+                        <Text style={[styles.playerName, winner === item.player2Id && styles.winnerText]} numberOfLines={1}>
+                            {item.player2Id || "Waiting..."}
+                        </Text>
+                        {winner === item.player2Id && <MaterialCommunityIcons name="crown" size={16} color={COLORS.warning} />}
+                    </View>
+                </View>
+            </LinearGradient>
+        );
+    };
     const fetchSavedTeammates = async () => {
         setLoadingTeammates(true);
         try {
@@ -115,100 +182,139 @@ export default function TournamentDetailScreen({ route }) {
 
     const getStatusColor = (status) => {
         switch (status?.toLowerCase()) {
-            case 'open': return '#48BB78';
-            case 'in progress': return '#ED8936';
-            case 'closed': return '#E53E3E';
-            default: return '#A0AEC0';
+            case 'open': return COLORS.success;
+            case 'in progress': return COLORS.warning;
+            case 'closed': return COLORS.error;
+            case 'completed': return COLORS.info;
+            default: return COLORS.textSecondary;
         }
     };
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
+            <StatusBar barStyle="light-content" />
+
+            {/* Header */}
+            <LinearGradient colors={[COLORS.surface, COLORS.background]} style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <MaterialCommunityIcons name="arrow-left" size={24} color="#2D3748" />
+                    <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Tournament Details</Text>
+                <Text style={styles.headerTitle}>Tournament Arena</Text>
                 <View style={{ width: 24 }} />
+            </LinearGradient>
+
+            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+                {/* Hero Section */}
+                <ImageBackground
+                    source={{ uri: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80' }}
+                    style={styles.banner}
+                    imageStyle={{ borderRadius: 24, opacity: 0.4 }}
+                >
+                    <LinearGradient
+                        colors={['transparent', 'rgba(0,0,0,0.8)']}
+                        style={styles.bannerGradient}
+                    >
+                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(tournament.status) }]}>
+                            <Text style={styles.statusText}>{tournament.status}</Text>
+                        </View>
+                        <Text style={styles.gameTitle}>{tournament.game}</Text>
+                        <Text style={styles.name}>{tournament.name}</Text>
+                    </LinearGradient>
+                </ImageBackground>
+
+                {/* Details Cards */}
+                <View style={styles.statsContainer}>
+                    <View style={styles.statItem}>
+                        <MaterialCommunityIcons name="account-group" size={24} color={COLORS.secondary} />
+                        <Text style={styles.statValue}>
+                            {isTeamMode ? (tournament.teams?.length || 0) : (tournament.participants?.length || 0)} <Text style={styles.statMax}>/ {tournament.maxPlayers}</Text>
+                        </Text>
+                        <Text style={styles.statLabel}>{isTeamMode ? "Teams" : "Players"}</Text>
+                    </View>
+                    <View style={styles.dividerVertical} />
+                    <View style={styles.statItem}>
+                        <MaterialCommunityIcons name="trophy" size={24} color={COLORS.warning} />
+                        <Text style={styles.statValue}>{tournament.prize}</Text>
+                        <Text style={styles.statLabel}>Prize Pool</Text>
+                    </View>
+                    <View style={styles.dividerVertical} />
+                    <View style={styles.statItem}>
+                        <MaterialCommunityIcons name="format-list-numbered" size={24} color={COLORS.primaryLight} />
+                        <Text style={styles.statValue}>{teamSize}v{teamSize}</Text>
+                        <Text style={styles.statLabel}>Format</Text>
+                    </View>
+                </View>
+
+                {/* Bracket / Matches Section */}
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Matches & Bracket</Text>
+                    <TouchableOpacity onPress={() => showMatches(tournament.id || tournament._id)}>
+                        <Text style={styles.refreshText}><MaterialCommunityIcons name="refresh" /> Refresh</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {matches.length > 0 ? (
+                    Object.keys(groupedMatches).map(round => (
+                        <View key={round} style={styles.roundContainer}>
+                            <Text style={styles.roundTitle}>Round {round}</Text>
+                            {groupedMatches[round].map(match => (
+                                <View key={match._id || match.id}>
+                                    {renderMatchItem({ item: match })}
+                                </View>
+                            ))}
+                        </View>
+                    ))
+                ) : (
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyStateText}>No matches generated yet.</Text>
+                        <TouchableOpacity onPress={() => showMatches(tournament.id || tournament._id)} style={styles.smallButton}>
+                            <Text style={styles.smallButtonText}>Load Matches</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+
+                <View style={{ height: 100 }} />
+            </ScrollView>
+
+            {/* Sticky Footer for Actions */}
+            <View style={styles.footer}>
+                {isJoined ? (
+                    <View style={styles.joinedBadge}>
+                        <MaterialCommunityIcons name="check-decagram" size={24} color={COLORS.success} />
+                        <Text style={styles.joinedText}>Registered for Tournament</Text>
+                    </View>
+                ) : (
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        style={[
+                            styles.joinButton,
+                            (tournament.status?.toLowerCase() !== 'open' || joining) && styles.disabledButton
+                        ]}
+                        onPress={handleJoin}
+                        disabled={tournament.status?.toLowerCase() !== 'open' || joining}
+                    >
+                        {joining ? (
+                            <ActivityIndicator color="#FFF" />
+                        ) : (
+                            <LinearGradient
+                                colors={tournament.status?.toLowerCase() === 'open' ? COLORS.gradientPrimary : [COLORS.textMuted, COLORS.textMuted]}
+                                style={styles.joinButtonGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                            >
+                                <Text style={styles.joinButtonText}>
+                                    {tournament.status?.toLowerCase() === 'open' ? (isTeamMode ? 'Register Team' : 'Join Tournament') : 'Registration Closed'}
+                                </Text>
+                                {tournament.status?.toLowerCase() === 'open' && (
+                                    <MaterialCommunityIcons name="login" size={20} color="#FFF" />
+                                )}
+                            </LinearGradient>
+                        )}
+                    </TouchableOpacity>
+                )}
             </View>
 
-            <ScrollView contentContainerStyle={styles.content}>
-                <View style={styles.banner}>
-                    <MaterialCommunityIcons name="trophy-award" size={80} color="#ECC94B" />
-                </View>
-
-                <View style={styles.titleSection}>
-                    <Text style={styles.gameTitle}>{tournament.game}</Text>
-                    <Text style={styles.name}>{tournament.name}</Text>
-
-                    <View style={styles.badgesRow}>
-                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(tournament.status) + '20' }]}>
-                            <Text style={[styles.statusText, { color: getStatusColor(tournament.status) }]}>{tournament.status}</Text>
-                        </View>
-                        {isTeamMode && (
-                            <View style={[styles.statusBadge, { backgroundColor: '#4299E120', marginLeft: 8 }]}>
-                                <Text style={[styles.statusText, { color: '#4299E1' }]}>{teamSize}v{teamSize}</Text>
-                            </View>
-                        )}
-                    </View>
-                </View>
-
-                <View style={styles.card}>
-                    <View style={styles.detailRow}>
-                        <View style={styles.detailItem}>
-                            <MaterialCommunityIcons name="account-group" size={24} color="#4A90E2" />
-                            <View>
-                                <Text style={styles.detailLabel}>
-                                    {isTeamMode ? "Teams" : "Players"}
-                                </Text>
-                                <Text style={styles.detailValue}>
-                                    {isTeamMode ? (tournament.teams?.length || 0) : (tournament.participants?.length || 0)} / {tournament.maxPlayers}
-                                </Text>
-                            </View>
-                        </View>
-                        <View style={styles.dividerVertical} />
-                        <View style={styles.detailItem}>
-                            <MaterialCommunityIcons name="cash" size={24} color="#48BB78" />
-                            <View>
-                                <Text style={styles.detailLabel}>Prize Pool</Text>
-                                <Text style={styles.detailValue}>{tournament.prize}</Text>
-                            </View>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Join Button */}
-                <View style={styles.footer}>
-                    {isJoined ? (
-                        <View style={styles.joinedBadge}>
-                            <MaterialCommunityIcons name="check-circle" size={24} color="#48BB78" />
-                            <Text style={styles.joinedText}>You have joined this tournament</Text>
-                        </View>
-                    ) : (
-                        <TouchableOpacity
-                            style={[
-                                styles.joinButton,
-                                (tournament.status?.toLowerCase() !== 'open' || joining) && styles.disabledButton
-                            ]}
-                            onPress={handleJoin}
-                            disabled={tournament.status?.toLowerCase() !== 'open' || joining}
-                        >
-                            {joining ? (
-                                <ActivityIndicator color="#FFF" />
-                            ) : (
-                                <>
-                                    <Text style={styles.joinButtonText}>
-                                        {tournament.status?.toLowerCase() === 'open' ? (isTeamMode ? 'Register Team' : 'Join Tournament') : 'Registration Closed'}
-                                    </Text>
-                                    {tournament.status?.toLowerCase() === 'open' && (
-                                        <MaterialCommunityIcons name="login" size={20} color="#FFF" />
-                                    )}
-                                </>
-                            )}
-                        </TouchableOpacity>
-                    )}
-                </View>
-            </ScrollView>
 
             {/* Team Registration Modal */}
             <Modal
@@ -288,44 +394,77 @@ export default function TournamentDetailScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F7FAFC' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 50, paddingBottom: 20, backgroundColor: 'white' },
-    headerTitle: { fontSize: 18, fontWeight: '700', color: '#2D3748' },
-    content: { padding: 20 },
-    banner: { height: 180, backgroundColor: '#2D3748', borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 24, shadowColor: "#4A90E2", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 10 },
-    titleSection: { alignItems: 'center', marginBottom: 30 },
-    gameTitle: { fontSize: 16, color: '#718096', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
-    name: { fontSize: 28, fontWeight: '800', color: '#2D3748', textAlign: 'center', marginBottom: 12 },
-    badgesRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-    statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-    statusText: { fontWeight: '700', textTransform: 'uppercase', fontSize: 12 },
-    card: { backgroundColor: 'white', borderRadius: 20, padding: 20, marginBottom: 30 },
-    detailRow: { flexDirection: 'row', justifyContent: 'space-between' },
-    detailItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-    dividerVertical: { width: 1, height: '100%', backgroundColor: '#E2E8F0', marginHorizontal: 15 },
-    detailLabel: { fontSize: 12, color: '#718096', fontWeight: '500' },
-    detailValue: { fontSize: 16, color: '#2D3748', fontWeight: '700' },
-    footer: { marginTop: 'auto' },
-    joinButton: { backgroundColor: '#4A90E2', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, borderRadius: 16, gap: 8, shadowColor: "#4A90E2", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 8 },
-    disabledButton: { backgroundColor: '#CBD5E0', shadowOpacity: 0, elevation: 0 },
-    joinButtonText: { color: 'white', fontSize: 18, fontWeight: '700' },
-    joinedBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 20, backgroundColor: '#F0FFF4', borderRadius: 16, borderWidth: 1, borderColor: '#C6F6D5' },
-    joinedText: { color: '#2F855A', fontWeight: '700', fontSize: 16 },
-    // Modal Styles
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-    modalContent: { backgroundColor: 'white', borderRadius: 20, padding: 24, width: '100%' },
-    modalTitle: { fontSize: 20, fontWeight: '700', marginBottom: 20, textAlign: 'center', color: '#2D3748' },
-    input: { backgroundColor: '#EDF2F7', padding: 15, borderRadius: 12, marginBottom: 15, fontSize: 16 },
-    modalSubTitle: { fontSize: 14, fontWeight: '600', marginBottom: 8, color: '#718096' },
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 50, paddingBottom: 20 },
+    headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text },
+    content: { paddingBottom: 100 },
+
+    banner: { height: 220, marginHorizontal: 20, borderRadius: 24, justifyContent: 'flex-end', overflow: 'hidden', marginBottom: 20, ...SHADOWS.medium },
+    bannerGradient: { padding: 20, width: '100%' },
+    gameTitle: { color: COLORS.secondary, fontSize: 14, fontWeight: 'bold', letterSpacing: 1.5, textTransform: 'uppercase' },
+    name: { fontSize: 26, fontWeight: '900', color: COLORS.text, marginTop: 5 },
+
+    statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginBottom: 10 },
+    statusText: { color: COLORS.text, fontWeight: 'bold', fontSize: 12, textTransform: 'uppercase' },
+
+    statsContainer: { flexDirection: 'row', backgroundColor: COLORS.surface, marginHorizontal: 20, padding: 20, borderRadius: COLORS.radius, ...SHADOWS.light, justifyContent: 'space-between', marginBottom: 30 },
+    statItem: { alignItems: 'center', flex: 1 },
+    statValue: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, marginTop: 5 },
+    statMax: { fontSize: 12, color: COLORS.textSecondary },
+    statLabel: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+    dividerVertical: { width: 1, backgroundColor: COLORS.card, marginHorizontal: 10 },
+
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 15 },
+    sectionTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.text },
+    refreshText: { color: COLORS.secondary, fontWeight: '600' },
+
+    roundContainer: { marginBottom: 25, paddingHorizontal: 20 },
+    roundTitle: { color: COLORS.textSecondary, fontSize: 14, fontWeight: 'bold', marginBottom: 10, letterSpacing: 1 },
+
+    matchCard: { borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.card },
+    matchHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+    matchIdText: { color: COLORS.textMuted, fontSize: 10 },
+    matchStatusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+    matchStatusText: { fontSize: 10, fontWeight: 'bold' },
+
+    matchPlayersRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    playerSide: { flex: 1, flexDirection: 'column', alignItems: 'center', gap: 4 },
+    winnerSide: { opacity: 1 },
+    playerName: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 14 },
+    winnerText: { color: COLORS.success, fontWeight: 'bold' },
+    playerScore: { color: COLORS.text, fontSize: 20, fontWeight: 'bold' },
+    winnerScore: { color: COLORS.success },
+    vsText: { color: COLORS.textMuted, fontSize: 10, fontWeight: 'bold', marginHorizontal: 10 },
+
+    emptyState: { alignItems: 'center', marginTop: 30 },
+    emptyStateText: { color: COLORS.textMuted, marginBottom: 15 },
+    smallButton: { padding: 10, backgroundColor: COLORS.surface, borderRadius: 8 },
+    smallButtonText: { color: COLORS.secondary },
+
+    footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.surface, padding: 20, borderTopWidth: 1, borderTopColor: COLORS.card },
+    joinButton: { borderRadius: 16, overflow: 'hidden', ...SHADOWS.glow },
+    joinButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, gap: 10 },
+    joinButtonText: { color: COLORS.text, fontSize: 18, fontWeight: 'bold' },
+    disabledButton: { opacity: 0.7 },
+
+    joinedBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 15, backgroundColor: 'rgba(0, 230, 118, 0.1)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(0, 230, 118, 0.3)' },
+    joinedText: { color: COLORS.success, fontWeight: 'bold', fontSize: 16 },
+
+    // Modal Styles Update
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+    modalContent: { backgroundColor: COLORS.surface, borderRadius: 24, padding: 24, width: '100%', borderWidth: 1, borderColor: COLORS.primaryDark },
+    modalTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: COLORS.text },
+    input: { backgroundColor: COLORS.background, padding: 16, borderRadius: 12, marginBottom: 15, fontSize: 16, color: COLORS.text, borderWidth: 1, borderColor: COLORS.card },
+    modalSubTitle: { fontSize: 14, fontWeight: '600', marginBottom: 10, color: COLORS.textSecondary },
     inviteRow: { flexDirection: 'row', gap: 10, marginBottom: 15 },
-    addButton: { backgroundColor: '#4A90E2', width: 50, height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-    mateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: '#F7FAFC', marginBottom: 8, borderRadius: 8 },
+    addButton: { backgroundColor: COLORS.primary, width: 54, height: 54, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+    mateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: COLORS.background, marginBottom: 8, borderRadius: 8 },
     modalActions: { flexDirection: 'row', gap: 12, marginTop: 20 },
-    cancelButton: { flex: 1, padding: 15, borderRadius: 12, backgroundColor: '#E2E8F0', alignItems: 'center' },
-    confirmButton: { flex: 1, padding: 15, borderRadius: 12, backgroundColor: '#4A90E2', alignItems: 'center' },
-    cancelText: { fontWeight: '700', color: '#4A5568' },
-    confirmText: { fontWeight: '700', color: 'white' },
-    savedMateChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 15, backgroundColor: '#EBF8FF', borderWidth: 1, borderColor: '#BEE3F8' },
-    savedMateChipSelected: { backgroundColor: '#4A90E2', borderColor: '#4A90E2' },
-    savedMateText: { color: '#2B6CB0', fontSize: 12, fontWeight: '600' }
+    cancelButton: { flex: 1, padding: 16, borderRadius: 12, backgroundColor: COLORS.card, alignItems: 'center' },
+    confirmButton: { flex: 1, padding: 16, borderRadius: 12, backgroundColor: COLORS.primary, alignItems: 'center' },
+    cancelText: { fontWeight: 'bold', color: COLORS.textSecondary },
+    confirmText: { fontWeight: 'bold', color: 'white' },
+    savedMateChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.card },
+    savedMateChipSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    savedMateText: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '600' }
 });

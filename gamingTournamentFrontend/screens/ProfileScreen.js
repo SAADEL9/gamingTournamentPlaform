@@ -31,7 +31,8 @@ export default function ProfileScreen() {
             api.post('/user/sync', {
                 email: user.email,
                 displayName: user.displayName || "",
-                photoUrl: user.photoURL || null
+                photoUrl: user.photoURL || null,
+                firebaseUid: user.uid
             }).catch(err => console.error("Auto-sync failed:", err));
         }
     }, [user]);
@@ -105,7 +106,8 @@ export default function ProfileScreen() {
             await api.post('/user/sync', {
                 email: user.email,
                 displayName: displayName,
-                photoUrl: url
+                photoUrl: url,
+                firebaseUid: user.uid
             });
             setIsEditing(false);
             Alert.alert("Success", "Profile updated successfully!");
@@ -236,6 +238,13 @@ export default function ProfileScreen() {
                                     onPress={() => navigation.navigate('myTournaments')}
                                 >
                                     <Text style={styles.buttonText}>My Tournaments</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.primaryButton, { backgroundColor: '#38A169', marginBottom: 15 }]}
+                                    onPress={() => navigation.navigate('FriendRequests')}
+                                >
+                                    <Text style={styles.buttonText}>Friend Requests</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#E53E3E' }]} onPress={handleLogout}>

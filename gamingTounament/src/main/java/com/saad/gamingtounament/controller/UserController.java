@@ -20,7 +20,9 @@ public class UserController {
         String email = payload.get("email");
         String displayName = payload.get("displayName");
         String photoUrl = payload.get("photoUrl");
-        return new ResponseEntity<>(userService.getOrCreateUser(email, displayName, photoUrl), HttpStatus.OK);
+        String firebaseUid = payload.get("firebaseUid");
+        return new ResponseEntity<>(userService.getOrCreateUser(email, displayName, photoUrl, firebaseUid),
+                HttpStatus.OK);
     }
 
     @GetMapping("/{email}")

@@ -18,7 +18,15 @@ export default function AdminScreen({ navigation }) {
             console.error("Error signing out: ", error);
         }
     };
-
+    const handleGenerateBracket = async (id) => {
+        try {
+            await api.post(`/matches/generate/${id}`);
+            window.alert("Generated\n\nThe bracket has been generated.");
+        } catch (err) {
+            console.error(err);
+            window.alert("Error\n\nFailed to generate bracket");
+        }
+    }
     useLayoutEffect(() => {
         navigation.setOptions({
             headerRight: () => (
@@ -62,6 +70,7 @@ export default function AdminScreen({ navigation }) {
             }
         }
     };
+
 
     if (loading) {
         return (
@@ -119,6 +128,12 @@ export default function AdminScreen({ navigation }) {
                                 >
                                     <Text style={[styles.buttonText, styles.deleteButtonText]}>Delete</Text>
                                 </TouchableOpacity>
+                                <TouchableOpacity
+
+                                    onPress={() => handleGenerateBracket(item.id)}
+                                >
+                                    <Text >generate bracket</Text>
+                                </TouchableOpacity>
                             </View>
                         </View>
                     );
@@ -136,6 +151,7 @@ export default function AdminScreen({ navigation }) {
             >
                 <Text style={styles.fabText}>+</Text>
             </TouchableOpacity>
+
         </View>
     );
 }

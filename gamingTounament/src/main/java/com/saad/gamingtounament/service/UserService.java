@@ -40,17 +40,23 @@ public class UserService {
         }
     }
 
-    public User getOrCreateUser(String email, String displayName, String photoUrl) {
-        System.out.println("DEBUG: Syncing user " + email);
+    public User getOrCreateUser(String email, String displayName, String photoUrl, String firebaseUid) {
+        System.out.println("DEBUG: Syncing user " + email + " with UID: " + firebaseUid);
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isPresent()) {
             System.out.println("DEBUG: User exists, updating.");
             User user = userOpt.get();
-            // Optionally update fields if changed
+            // Update fields if changed
+            if (firebaseUid != null && !firebaseUid.equals(user.getFirebaseUid())) {
+                System.out.println("DEBUG: Updating missing/changed Firebase UID for " + email);
+                user.setFirebaseUid(firebaseUid);
+                return userRepository.save(user);
+            }
             return user;
         } else {
             System.out.println("DEBUG: Creating NEW user for " + email);
             User newUser = new User(email, displayName, photoUrl);
+            newUser.setFirebaseUid(firebaseUid); // Set the UID
             User savedUser = userRepository.save(newUser);
             System.out.println("DEBUG: Saved user ID: " + savedUser.getId());
             return savedUser;

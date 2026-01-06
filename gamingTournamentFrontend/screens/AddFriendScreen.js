@@ -9,14 +9,18 @@ import {
     TouchableOpacity,
     Alert,
     Image,
-    ActivityIndicator
+    ActivityIndicator,
+    StatusBar
 } from "react-native";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from "../api/api";
 import { auth } from "../firebase";
+import { COLORS, SHADOWS } from "../constants/theme";
 
 export default function AddFriendScreen({ navigation }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [results, setResults] = useState([]);
+
     const [loading, setLoading] = useState(false);
     const user = auth.currentUser;
     const handleSearch = async () => {
@@ -36,6 +40,16 @@ export default function AddFriendScreen({ navigation }) {
     };
 
     const handleAddFriend = async (user, item) => {
+        console.log("DEBUG: Sending Friend Request");
+        console.log("Sender (user.uid):", user?.uid);
+        console.log("Receiver (item.firebaseUid):", item?.firebaseUid);
+        console.log("Receiver Object:", item);
+
+        if (!user?.uid || !item?.firebaseUid) {
+            Alert.alert("Error", "Missing User ID. Sender: " + user?.uid + ", Receiver: " + item?.firebaseUid);
+            return;
+        }
+
         setLoading(true);
         try {
             const response = await api.post("/friend-request/create", {

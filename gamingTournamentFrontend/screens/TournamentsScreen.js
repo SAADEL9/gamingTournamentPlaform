@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, RefreshControl, StatusBar, Image } from "react-native";
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, RefreshControl, StatusBar, Image, ImageBackground } from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { LinearGradient } from 'expo-linear-gradient';
 import api from "../api/api";
 import { auth } from "../firebase";
+import { COLORS, SHADOWS } from "../constants/theme";
 
 const sanitizeTournament = (item, index) => {
   try {
@@ -26,10 +28,10 @@ const sanitizeTournament = (item, index) => {
 
 const getStatusColor = (status) => {
   switch (status?.toLowerCase()) {
-    case 'open': return '#48BB78'; // Green
-    case 'in progress': return '#ED8936'; // Orange
-    case 'closed': return '#E53E3E'; // Red
-    default: return '#A0AEC0'; // Gray
+    case 'open': return COLORS.success;
+    case 'in progress': return COLORS.warning;
+    case 'closed': return COLORS.error;
+    default: return COLORS.textSecondary;
   }
 };
 
@@ -71,75 +73,65 @@ export default function TournamentsScreen() {
   };
 
   useEffect(() => {
-    const user = auth.currentUser;
     navigation.setOptions({
-      headerTitle: "Available Tournaments",
-      headerStyle: { backgroundColor: '#F7FAFC', elevation: 0, shadowOpacity: 0 },
-      headerTitleStyle: { fontWeight: '800', fontSize: 22, color: '#2D3748' },
-      headerRight: () => (
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={{ marginRight: 15 }}>
-          <View style={styles.profileButton}>
-            {user?.photoURL ? (
-              <Image
-                source={{ uri: user.photoURL }}
-                style={{ width: 32, height: 32, borderRadius: 16 }}
-              />
-            ) : (
-              <MaterialCommunityIcons name="account-circle" size={28} color="#4A90E2" />
-            )}
-          </View>
-        </TouchableOpacity>
-      ),
+      headerShown: false // Custom header in drawer or screen itself
     });
   }, [navigation]);
 
 
   const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={[styles.iconContainer, { backgroundColor: '#4A90E2' }]}>
-          <MaterialCommunityIcons name="controller-classic" size={24} color="#FFF" />
-        </View>
-        <View style={styles.headerContent}>
-          <Text style={styles.gameTitle}>{item.game}</Text>
-          <Text style={styles.tournamentName} numberOfLines={1}>{item.name}</Text>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
-        </View>
-      </View>
-
-      <View style={styles.divider} />
-
-      <View style={styles.cardBody}>
-        <View style={styles.metaRow}>
-          <View style={styles.metaItem}>
-            <MaterialCommunityIcons name="account-group" size={18} color="#718096" />
-            <Text style={styles.metaText}>{item.maxPlayers} Joueurs</Text>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => navigation.navigate('TournamentDetail', { tournament: item })}
+      style={{ marginBottom: 20 }}
+    >
+      <LinearGradient
+        colors={COLORS.gradientCard}
+        style={styles.card}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.cardHeader}>
+          <View style={[styles.iconContainer, { backgroundColor: COLORS.surface }]}>
+            <MaterialCommunityIcons name="controller-classic" size={24} color={COLORS.primary} />
           </View>
-          <View style={styles.metaItem}>
-            <MaterialCommunityIcons name="trophy" size={18} color="#ECC94B" />
-            <Text style={styles.metaText}>{item.prize}</Text>
+          <View style={styles.headerContent}>
+            <Text style={styles.gameTitle}>{item.game}</Text>
+            <Text style={styles.tournamentName} numberOfLines={1}>{item.name}</Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.joinButton}
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate('TournamentDetail', { tournament: item })}
-        >
-          <Text style={styles.joinButtonText}>Voir Détails</Text>
-          <MaterialCommunityIcons name="arrow-right" size={20} color="#FFF" />
-        </TouchableOpacity>
-      </View>
-    </View>
+        <View style={styles.divider} />
+
+        <View style={styles.cardBody}>
+          <View style={styles.metaRow}>
+            <View style={styles.metaItem}>
+              <MaterialCommunityIcons name="account-group" size={18} color={COLORS.textSecondary} />
+              <Text style={styles.metaText}>{item.maxPlayers} Players</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <MaterialCommunityIcons name="trophy" size={18} color={COLORS.warning} />
+              <Text style={styles.metaText}>{item.prize}</Text>
+            </View>
+          </View>
+
+          <View style={styles.joinButton}>
+            <Text style={styles.joinButtonText}>View Details</Text>
+            <MaterialCommunityIcons name="arrow-right" size={20} color={COLORS.secondary} />
+          </View>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
   );
 
   if (loading && !refreshing) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#4A90E2" />
-        <Text style={styles.loadingText}>Chargement des tournois...</Text>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading Tournaments...</Text>
       </View>
     );
   }
@@ -147,11 +139,11 @@ export default function TournamentsScreen() {
   if (error) {
     return (
       <View style={styles.center}>
-        <MaterialCommunityIcons name="alert-circle-outline" size={60} color="#E53E3E" />
-        <Text style={styles.errorText}>Oups ! Une erreur est survenue.</Text>
+        <MaterialCommunityIcons name="alert-circle-outline" size={60} color={COLORS.error} />
+        <Text style={styles.errorText}>Oops! Something went wrong.</Text>
         <Text style={styles.errorDetail}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={loadTournaments}>
-          <Text style={styles.retryButtonText}>Réessayer</Text>
+          <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
@@ -159,7 +151,15 @@ export default function TournamentsScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7FAFC" />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
+          <MaterialCommunityIcons name="menu" size={28} color={COLORS.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Tournaments</Text>
+        <View style={{ width: 28 }} />
+      </View>
+
       <FlatList
         data={tournaments}
         keyExtractor={(item) => String(item._id)}
@@ -167,12 +167,12 @@ export default function TournamentsScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4A90E2']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="trophy-broken" size={60} color="#CBD5E0" />
-            <Text style={styles.emptyText}>Aucun tournoi disponible pour le moment.</Text>
+            <MaterialCommunityIcons name="trophy-broken" size={60} color={COLORS.textMuted} />
+            <Text style={styles.emptyText}>No tournaments available right now.</Text>
           </View>
         }
       />
@@ -183,30 +183,39 @@ export default function TournamentsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F7FAFC"
+    backgroundColor: COLORS.background
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 20,
+    backgroundColor: COLORS.background,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
   },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 20
+    padding: 20,
+    backgroundColor: COLORS.background
   },
   listContent: {
     padding: 20,
-    paddingBottom: 40
+    paddingBottom: 100
   },
   card: {
-    backgroundColor: 'white',
     borderRadius: 20,
-    marginBottom: 20,
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 5,
     borderWidth: 1,
-    borderColor: '#EDF2F7'
+    borderColor: COLORS.surface,
+    ...SHADOWS.medium,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -226,31 +235,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   gameTitle: {
-    fontSize: 14,
-    color: '#718096',
-    fontWeight: '600',
+    fontSize: 12,
+    color: COLORS.secondary,
+    fontWeight: 'bold',
     textTransform: 'uppercase',
-    letterSpacing: 0.5
+    letterSpacing: 1
   },
   tournamentName: {
     fontSize: 18,
-    color: '#2D3748',
-    fontWeight: '800',
-    marginTop: 2
+    color: COLORS.text,
+    fontWeight: 'bold',
+    marginTop: 4
   },
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 20,
+    borderRadius: 8,
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: 'bold',
     textTransform: 'uppercase'
   },
   divider: {
     height: 1,
-    backgroundColor: '#EDF2F7',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     marginBottom: 16
   },
   cardBody: {
@@ -264,55 +273,52 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
+    gap: 8
   },
   metaText: {
-    fontSize: 15,
-    color: '#4A5568',
+    fontSize: 14,
+    color: COLORS.textSecondary,
     fontWeight: '500'
   },
   joinButton: {
-    backgroundColor: '#4A90E2',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 14,
+    justifyContent: 'flex-end',
     gap: 8,
     marginTop: 8
   },
   joinButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '700'
+    color: COLORS.secondary,
+    fontSize: 14,
+    fontWeight: 'bold'
   },
   loadingText: {
     marginTop: 12,
-    color: '#718096',
+    color: COLORS.textSecondary,
     fontSize: 16
   },
   errorText: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#2D3748',
+    fontWeight: 'bold',
+    color: COLORS.error,
     marginTop: 16
   },
   errorDetail: {
     fontSize: 14,
-    color: '#718096',
+    color: COLORS.textSecondary,
     textAlign: 'center',
     marginTop: 8,
     marginBottom: 20
   },
   retryButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: COLORS.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 10
   },
   retryButtonText: {
     color: 'white',
-    fontWeight: '700'
+    fontWeight: 'bold'
   },
   emptyContainer: {
     alignItems: 'center',
@@ -321,13 +327,10 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginTop: 16,
-    color: '#A0AEC0',
+    color: COLORS.textMuted,
     fontSize: 16,
     textAlign: 'center',
     width: '70%'
   },
-  profileButton: {
-    padding: 4
-  }
 });
 

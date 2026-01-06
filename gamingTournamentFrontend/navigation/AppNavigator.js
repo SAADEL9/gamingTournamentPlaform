@@ -13,6 +13,9 @@ import AddEditTournamentScreen from "../screens/AddEditTournamentScreen";
 import TournamentDetailScreen from "../screens/TournamentDetailScreen";
 import MyTournamentsScreen from "../screens/myTournamentsScreen";
 import AddFriendScreen from "../screens/AddFriendScreen";
+import FriendRequestsScreen from "../screens/FriendRequestsScreen";
+
+import DrawerNavigator from "./DrawerNavigator";
 
 const ADMIN_EMAIL = "admin@gmail.com";
 const Stack = createNativeStackNavigator();
@@ -33,25 +36,26 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
           // 🛑 Not Logged In
-          <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Auth" component={AuthScreen} />
         ) : user.email === ADMIN_EMAIL ? (
           // 🛡️ Admin Stack
           <>
-            <Stack.Screen name="Admin" component={AdminScreen} options={{ title: 'Admin Dashboard' }} />
-            <Stack.Screen name="AddEditTournament" component={AddEditTournamentScreen} options={{ title: 'Manage Tournament' }} />
+            <Stack.Screen name="Admin" component={AdminScreen} options={{ title: 'Admin Dashboard', headerShown: true }} />
+            <Stack.Screen name="AddEditTournament" component={AddEditTournamentScreen} options={{ title: 'Manage Tournament', headerShown: true }} />
           </>
         ) : (
-          // 👤 User Stack
+          // 👤 User Stack (Wrapped in Drawer)
           <>
-            <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="myTournaments" component={MyTournamentsScreen} options={{ title: 'My Tournaments' }} />
-            <Stack.Screen name="Tournaments" component={TournamentsScreen} options={{ title: 'Tournaments' }} />
-            <Stack.Screen name="TournamentDetail" component={TournamentDetailScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Public Profile' }} />
-            <Stack.Screen name="AddFriend" component={AddFriendScreen} options={{ title: 'Find Friends' }} />
+            <Stack.Screen name="Root" component={DrawerNavigator} />
+            {/* Screens that should be pushed ON TOP of drawer (like details) */}
+            <Stack.Screen
+              name="TournamentDetail"
+              component={TournamentDetailScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
           </>
         )}
       </Stack.Navigator>
