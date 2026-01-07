@@ -37,7 +37,8 @@ export default function FriendRequestsScreen() {
                 <MaterialCommunityIcons name="account-circle" size={40} color={colors.primary} />
                 <View style={{ marginLeft: 10, flex: 1 }}>
                     <Text style={[styles.senderText, { color: colors.textSecondary }]}>Request from</Text>
-                    <Text style={[styles.senderId, { color: colors.text }]}>{item.senderId}</Text>
+                    <Text style={[styles.senderId, { color: colors.text }]}>{item.senderName || item.senderId}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{item.senderEmail}</Text>
                 </View>
             </View>
 

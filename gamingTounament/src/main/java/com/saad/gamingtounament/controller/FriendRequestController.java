@@ -32,7 +32,7 @@ public class FriendRequestController {
     }
 
     @GetMapping("/list/{userId}")
-    public ResponseEntity<java.util.List<FriendRequest>> getRequestsByUser(
+    public ResponseEntity<java.util.List<com.saad.gamingtounament.dto.FriendRequestDTO>> getRequestsByUser(
             @org.springframework.web.bind.annotation.PathVariable String userId) {
         return new ResponseEntity<>(friendRequestService.getAllRequestsByUser(userId), HttpStatus.OK);
     }

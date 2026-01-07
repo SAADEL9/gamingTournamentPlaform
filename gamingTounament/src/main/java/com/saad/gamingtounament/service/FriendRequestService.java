@@ -8,13 +8,12 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
-
 public interface FriendRequestService {
 
-
-
     public Optional<FriendRequest> findRequestById(String id);
-    public FriendRequest createFriendRequest(String senderid, String receiverid) ;
-    public List<FriendRequest> getAllRequestsByUser(String id);
+
+    public FriendRequest createFriendRequest(String senderid, String receiverid);
+
+    public List<com.saad.gamingtounament.dto.FriendRequestDTO> getAllRequestsByUser(String id);
 
 }

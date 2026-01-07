@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, RefreshControl, StatusBar, Image, ImageBackground } from "react-native";
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, RefreshControl, StatusBar } from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from "react-native-safe-area-context";
 import api from "../api/api";
-import { auth } from "../firebase";
-import { COLORS, SHADOWS } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
+import { SHADOWS } from "../constants/theme";
 
 const sanitizeTournament = (item, index) => {
   try {
@@ -26,21 +27,22 @@ const sanitizeTournament = (item, index) => {
   }
 };
 
-const getStatusColor = (status) => {
-  switch (status?.toLowerCase()) {
-    case 'open': return COLORS.success;
-    case 'in progress': return COLORS.warning;
-    case 'closed': return COLORS.error;
-    default: return COLORS.textSecondary;
-  }
-};
-
 export default function TournamentsScreen() {
+  const { colors, theme } = useTheme();
   const navigation = useNavigation();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'open': return colors.success;
+      case 'in progress': return colors.warning;
+      case 'closed': return colors.error;
+      default: return colors.textSecondary;
+    }
+  };
 
   const loadTournaments = async () => {
     try {
@@ -72,77 +74,65 @@ export default function TournamentsScreen() {
     loadTournaments();
   };
 
-  useEffect(() => {
-    navigation.setOptions({
-      headerShown: false // Custom header in drawer or screen itself
-    });
-  }, [navigation]);
-
-
   const renderItem = ({ item }) => (
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={() => navigation.navigate('TournamentDetail', { tournament: item })}
       style={{ marginBottom: 20 }}
     >
-      <LinearGradient
-        colors={COLORS.gradientCard}
-        style={styles.card}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.cardHeader}>
-          <View style={[styles.iconContainer, { backgroundColor: COLORS.surface }]}>
-            <MaterialCommunityIcons name="controller-classic" size={24} color={COLORS.primary} />
+          <View style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+            <MaterialCommunityIcons name="controller-classic" size={24} color={colors.primary} />
           </View>
           <View style={styles.headerContent}>
-            <Text style={styles.gameTitle}>{item.game}</Text>
-            <Text style={styles.tournamentName} numberOfLines={1}>{item.name}</Text>
+            <Text style={[styles.gameTitle, { color: colors.primary }]}>{item.game}</Text>
+            <Text style={[styles.tournamentName, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
             <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         <View style={styles.cardBody}>
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
-              <MaterialCommunityIcons name="account-group" size={18} color={COLORS.textSecondary} />
-              <Text style={styles.metaText}>{item.maxPlayers} Players</Text>
+              <MaterialCommunityIcons name="account-group" size={18} color={colors.textSecondary} />
+              <Text style={[styles.metaText, { color: colors.textSecondary }]}>{item.maxPlayers} Players</Text>
             </View>
             <View style={styles.metaItem}>
-              <MaterialCommunityIcons name="trophy" size={18} color={COLORS.warning} />
-              <Text style={styles.metaText}>{item.prize}</Text>
+              <MaterialCommunityIcons name="trophy" size={18} color={colors.warning} />
+              <Text style={[styles.metaText, { color: colors.textSecondary }]}>{item.prize}</Text>
             </View>
           </View>
 
           <View style={styles.joinButton}>
-            <Text style={styles.joinButtonText}>View Details</Text>
-            <MaterialCommunityIcons name="arrow-right" size={20} color={COLORS.secondary} />
+            <Text style={[styles.joinButtonText, { color: colors.secondary }]}>View Details</Text>
+            <MaterialCommunityIcons name="arrow-right" size={20} color={colors.secondary} />
           </View>
         </View>
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading Tournaments...</Text>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading Tournaments...</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.center}>
-        <MaterialCommunityIcons name="alert-circle-outline" size={60} color={COLORS.error} />
-        <Text style={styles.errorText}>Oops! Something went wrong.</Text>
-        <Text style={styles.errorDetail}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadTournaments}>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <MaterialCommunityIcons name="alert-circle-outline" size={60} color={colors.error} />
+        <Text style={[styles.errorText, { color: colors.error }]}>Oops! Something went wrong.</Text>
+        <Text style={[styles.errorDetail, { color: colors.textSecondary }]}>{error}</Text>
+        <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={loadTournaments}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -150,13 +140,12 @@ export default function TournamentsScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
-          <MaterialCommunityIcons name="menu" size={28} color={COLORS.text} />
+          <MaterialCommunityIcons name="menu" size={28} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Tournaments</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Tournaments</Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -167,44 +156,39 @@ export default function TournamentsScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="trophy-broken" size={60} color={COLORS.textMuted} />
-            <Text style={styles.emptyText}>No tournaments available right now.</Text>
+            <MaterialCommunityIcons name="trophy-broken" size={60} color={colors.textMuted} />
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>No tournaments available right now.</Text>
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 20,
-    backgroundColor: COLORS.background,
+    paddingVertical: 15,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text,
   },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
-    backgroundColor: COLORS.background
   },
   listContent: {
     padding: 20,
@@ -214,7 +198,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: COLORS.surface,
     ...SHADOWS.medium,
   },
   cardHeader: {
@@ -236,14 +219,12 @@ const styles = StyleSheet.create({
   },
   gameTitle: {
     fontSize: 12,
-    color: COLORS.secondary,
     fontWeight: 'bold',
     textTransform: 'uppercase',
     letterSpacing: 1
   },
   tournamentName: {
     fontSize: 18,
-    color: COLORS.text,
     fontWeight: 'bold',
     marginTop: 4
   },
@@ -259,7 +240,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     marginBottom: 16
   },
   cardBody: {
@@ -277,7 +257,6 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 14,
-    color: COLORS.textSecondary,
     fontWeight: '500'
   },
   joinButton: {
@@ -288,30 +267,25 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   joinButtonText: {
-    color: COLORS.secondary,
     fontSize: 14,
     fontWeight: 'bold'
   },
   loadingText: {
     marginTop: 12,
-    color: COLORS.textSecondary,
     fontSize: 16
   },
   errorText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.error,
     marginTop: 16
   },
   errorDetail: {
     fontSize: 14,
-    color: COLORS.textSecondary,
     textAlign: 'center',
     marginTop: 8,
     marginBottom: 20
   },
   retryButton: {
-    backgroundColor: COLORS.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 10
@@ -327,7 +301,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginTop: 16,
-    color: COLORS.textMuted,
     fontSize: 16,
     textAlign: 'center',
     width: '70%'

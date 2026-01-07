@@ -8,10 +8,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { storage } from "../firebase";
 import { ref, uploadBytes, getDownloadURL, uploadString } from "firebase/storage";
 import api from "../api/api";
+import { useTheme } from "../context/ThemeContext";
 
 const ADMIN_EMAIL = "admin@admin.com";
 
 export default function ProfileScreen() {
+    const { colors, theme } = useTheme();
     const navigation = useNavigation();
     const user = auth.currentUser;
 
@@ -121,97 +123,97 @@ export default function ProfileScreen() {
 
     if (!user) {
         return (
-            <View style={styles.container}>
-                <Text>No user logged in.</Text>
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
+                <Text style={{ color: colors.text }}>No user logged in.</Text>
             </View>
         );
     }
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={isEditing ? pickImage : null} disabled={!isEditing} style={styles.avatarContainer}>
                         {photoURL ? (
                             <Image
                                 source={{ uri: photoURL }}
-                                style={styles.avatar}
+                                style={[styles.avatar, { backgroundColor: colors.surface }]}
                                 onError={() => setPhotoURL(null)} // Fallback to placeholder on error
                             />
                         ) : (
-                            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                            <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
                                 <MaterialCommunityIcons name="account" size={60} color="#FFF" />
                             </View>
                         )}
                         {isEditing && (
-                            <View style={styles.editBadge}>
-                                <MaterialCommunityIcons name="camera" size={20} color="#FFF" />
+                            <View style={[styles.editBadge, { backgroundColor: colors.text, borderColor: colors.background }]}>
+                                <MaterialCommunityIcons name="camera" size={20} color={colors.background} />
                             </View>
                         )}
                     </TouchableOpacity>
 
                     {isEditing ? (
                         <TextInput
-                            style={styles.inputTitle}
+                            style={[styles.inputTitle, { color: colors.text, borderBottomColor: colors.primary }]}
                             value={displayName}
                             onChangeText={setDisplayName}
                             placeholder="Your Name"
-                            placeholderTextColor="#A0AEC0"
+                            placeholderTextColor={colors.textSecondary}
                         />
                     ) : (
-                        <Text style={styles.title}>{user.displayName || "User"}</Text>
+                        <Text style={[styles.title, { color: colors.text }]}>{user.displayName || "User"}</Text>
                     )}
 
-                    <Text style={styles.subtitle}>{user.email}</Text>
+                    <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{user.email}</Text>
                 </View>
 
-                <View style={styles.card}>
+                <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.text }]}>
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Profile Information</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Profile Information</Text>
                         {!isEditing && (
                             <TouchableOpacity onPress={() => setIsEditing(true)}>
-                                <Text style={styles.editLink}>Edit</Text>
+                                <Text style={[styles.editLink, { color: colors.primary }]}>Edit</Text>
                             </TouchableOpacity>
                         )}
                     </View>
 
-                    <View style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
                     <View style={styles.infoRow}>
-                        <Text style={styles.label}>Display Name</Text>
-                        <Text style={styles.value}>{displayName || "Not set"}</Text>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Display Name</Text>
+                        <Text style={[styles.value, { color: colors.text }]}>{displayName || "Not set"}</Text>
                     </View>
 
-                    <View style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
                     <View style={styles.infoRow}>
-                        <Text style={styles.label}>Email</Text>
-                        <Text style={styles.value}>{user.email}</Text>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
+                        <Text style={[styles.value, { color: colors.text }]}>{user.email}</Text>
                     </View>
 
-                    <View style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
                     <View style={styles.infoRow}>
-                        <Text style={styles.label}>Member Since</Text>
-                        <Text style={styles.value}>{new Date(user.metadata.creationTime || Date.now()).toLocaleDateString()}</Text>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Member Since</Text>
+                        <Text style={[styles.value, { color: colors.text }]}>{new Date(user.metadata.creationTime || Date.now()).toLocaleDateString()}</Text>
                     </View>
 
                     <View style={{ marginTop: 30 }}>
                         {isEditing ? (
                             <View style={styles.buttonRow}>
                                 <TouchableOpacity
-                                    style={[styles.actionButton, styles.cancelButton]}
+                                    style={[styles.actionButton, styles.cancelButton, { backgroundColor: colors.border }]}
                                     onPress={() => {
                                         setIsEditing(false);
                                         setDisplayName(user.displayName || "");
                                         setPhotoURL(user.photoURL || null);
                                     }}
                                 >
-                                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                                    <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancel</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
-                                    style={[styles.actionButton, styles.saveButton]}
+                                    style={[styles.actionButton, styles.saveButton, { backgroundColor: colors.primary }]}
                                     onPress={saveProfile}
                                     disabled={loading}
                                 >
@@ -226,7 +228,7 @@ export default function ProfileScreen() {
                             <>
                                 {user.email === ADMIN_EMAIL && (
                                     <TouchableOpacity
-                                        style={[styles.primaryButton, { backgroundColor: '#2D3748', marginBottom: 15 }]}
+                                        style={[styles.primaryButton, { backgroundColor: colors.text, marginBottom: 15 }]}
                                         onPress={() => navigation.navigate('Admin')}
                                     >
                                         <Text style={styles.buttonText}>Admin Dashboard</Text>
@@ -234,20 +236,20 @@ export default function ProfileScreen() {
                                 )}
 
                                 <TouchableOpacity
-                                    style={[styles.primaryButton, { backgroundColor: '#4A90E2', marginBottom: 15 }]}
+                                    style={[styles.primaryButton, { backgroundColor: colors.primary, marginBottom: 15 }]}
                                     onPress={() => navigation.navigate('myTournaments')}
                                 >
                                     <Text style={styles.buttonText}>My Tournaments</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
-                                    style={[styles.primaryButton, { backgroundColor: '#38A169', marginBottom: 15 }]}
+                                    style={[styles.primaryButton, { backgroundColor: colors.success, marginBottom: 15 }]}
                                     onPress={() => navigation.navigate('FriendRequests')}
                                 >
                                     <Text style={styles.buttonText}>Friend Requests</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#E53E3E' }]} onPress={handleLogout}>
+                                <TouchableOpacity style={[styles.primaryButton, { backgroundColor: colors.error }]} onPress={handleLogout}>
                                     <Text style={styles.buttonText}>Log Out</Text>
                                 </TouchableOpacity>
                             </>
@@ -262,7 +264,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F7FAFC',
     },
     scrollContent: {
         flexGrow: 1,
@@ -276,7 +277,6 @@ const styles = StyleSheet.create({
     avatarContainer: {
         position: 'relative',
         marginBottom: 16,
-        shadowColor: "#4A90E2",
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.2,
         shadowRadius: 15,
@@ -286,52 +286,42 @@ const styles = StyleSheet.create({
         width: 120,
         height: 120,
         borderRadius: 60,
-        backgroundColor: '#E2E8F0',
     },
     avatarPlaceholder: {
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#4A90E2'
     },
     editBadge: {
         position: 'absolute',
         bottom: 0,
         right: 0,
-        backgroundColor: '#2D3748',
         width: 36,
         height: 36,
         borderRadius: 18,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 3,
-        borderColor: '#F7FAFC'
     },
     title: {
         fontSize: 26,
         fontWeight: "800",
-        color: "#2D3748",
         marginBottom: 4,
     },
     inputTitle: {
         fontSize: 26,
         fontWeight: "800",
-        color: "#2D3748",
         marginBottom: 4,
         borderBottomWidth: 1,
-        borderBottomColor: '#4A90E2',
         textAlign: 'center',
         minWidth: 200
     },
     subtitle: {
         fontSize: 16,
-        color: "#718096",
         textAlign: "center",
     },
     card: {
-        backgroundColor: 'white',
         borderRadius: 24,
         padding: 24,
-        shadowColor: "#000",
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.05,
         shadowRadius: 20,
@@ -347,10 +337,8 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#2D3748'
     },
     editLink: {
-        color: '#4A90E2',
         fontWeight: '600',
         fontSize: 16
     },
@@ -362,20 +350,16 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 16,
-        color: '#718096',
         fontWeight: '500',
     },
     value: {
         fontSize: 16,
-        color: '#2D3748',
         fontWeight: '600',
     },
     divider: {
         height: 1,
-        backgroundColor: '#EDF2F7',
     },
     primaryButton: {
-        backgroundColor: "#4A90E2",
         paddingVertical: 16,
         borderRadius: 16,
         alignItems: "center",
@@ -393,16 +377,15 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 16,
         borderRadius: 16,
-        alignItems: 'center',
+        alignItems: "center",
     },
     cancelButton: {
-        backgroundColor: '#EDF2F7',
+        // backgroundColor handled dynamically
     },
     saveButton: {
-        backgroundColor: '#4A90E2',
+        // backgroundColor handled dynamically
     },
     cancelButtonText: {
-        color: '#4A5568',
         fontSize: 16,
         fontWeight: '700'
     },
