@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../api/api';
 import { auth } from '../firebase';
-import { COLORS, SIZES, SHADOWS } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
+import { SHADOWS } from '../constants/theme';
 
 export default function FriendRequestsScreen() {
+    const { colors } = useTheme();
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const user = auth.currentUser;
@@ -29,22 +32,22 @@ export default function FriendRequestsScreen() {
     };
 
     const renderItem = ({ item }) => (
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.cardHeader}>
-                <MaterialCommunityIcons name="account-circle" size={40} color={COLORS.primary} />
+                <MaterialCommunityIcons name="account-circle" size={40} color={colors.primary} />
                 <View style={{ marginLeft: 10, flex: 1 }}>
-                    <Text style={styles.senderText}>Request from</Text>
-                    <Text style={styles.senderId}>{item.senderId}</Text>
+                    <Text style={[styles.senderText, { color: colors.textSecondary }]}>Request from</Text>
+                    <Text style={[styles.senderId, { color: colors.text }]}>{item.senderId}</Text>
                 </View>
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
             <View style={styles.actions}>
-                <TouchableOpacity style={styles.acceptButton} onPress={() => Alert.alert("Coming Soon", "Accept logic not implemented yet")}>
+                <TouchableOpacity style={[styles.acceptButton, { backgroundColor: colors.success }]} onPress={() => Alert.alert("Coming Soon", "Accept logic not implemented yet")}>
                     <Text style={styles.buttonText}>Accept</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.rejectButton} onPress={() => Alert.alert("Coming Soon", "Reject logic not implemented yet")}>
+                <TouchableOpacity style={[styles.rejectButton, { backgroundColor: colors.error }]} onPress={() => Alert.alert("Coming Soon", "Reject logic not implemented yet")}>
                     <Text style={styles.buttonText}>Decline</Text>
                 </TouchableOpacity>
             </View>
@@ -52,20 +55,19 @@ export default function FriendRequestsScreen() {
     );
 
     return (
-        <View style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
                 <TouchableOpacity onPress={() => navigation.navigate("Home")} style={styles.backButton}>
-                    <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.text} />
+                    <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Friend Requests</Text>
+                <Text style={[styles.headerTitle, { color: colors.text }]}>Friend Requests</Text>
                 <View style={{ width: 24 }} />
             </View>
 
             {loading ? (
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color={COLORS.primary} />
+                    <ActivityIndicator size="large" color={colors.primary} />
                 </View>
             ) : (
                 <FlatList
@@ -75,36 +77,32 @@ export default function FriendRequestsScreen() {
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
-                            <MaterialCommunityIcons name="account-off-outline" size={60} color={COLORS.textMuted} />
-                            <Text style={styles.emptyText}>No pending requests.</Text>
+                            <MaterialCommunityIcons name="account-off-outline" size={60} color={colors.textMuted} />
+                            <Text style={[styles.emptyText, { color: colors.textMuted }]}>No pending requests.</Text>
                         </View>
                     }
                 />
             )}
-        </View>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingTop: 50,
-        paddingBottom: 20,
-        backgroundColor: COLORS.surface,
-        ...SHADOWS.medium,
-        zIndex: 10
+        paddingVertical: 15,
+        borderBottomWidth: 1,
+        // Removed bad padding and replaced with standard view styling
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: COLORS.text,
     },
     center: {
         flex: 1,
@@ -115,13 +113,11 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     card: {
-        backgroundColor: COLORS.surface,
         padding: 16,
         marginBottom: 12,
         borderRadius: 16,
         ...SHADOWS.light,
         borderWidth: 1,
-        borderColor: COLORS.card
     },
     cardHeader: {
         flexDirection: 'row',
@@ -130,32 +126,26 @@ const styles = StyleSheet.create({
     },
     senderText: {
         fontSize: 12,
-        color: COLORS.textSecondary,
     },
     senderId: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: COLORS.text,
     },
     divider: {
         height: 1,
-        backgroundColor: COLORS.card,
         marginBottom: 12
     },
-
     actions: {
         flexDirection: 'row',
         justifyContent: 'flex-end',
         gap: 10
     },
     acceptButton: {
-        backgroundColor: COLORS.success,
         paddingVertical: 8,
         paddingHorizontal: 16,
         borderRadius: 8,
     },
     rejectButton: {
-        backgroundColor: COLORS.error,
         paddingVertical: 8,
         paddingHorizontal: 16,
         borderRadius: 8,
@@ -172,7 +162,6 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         textAlign: 'center',
-        color: COLORS.textMuted,
         fontSize: 16,
     },
 });
