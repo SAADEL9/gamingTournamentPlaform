@@ -59,11 +59,11 @@ export default function FriendRequestsScreen() {
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Header */}
             <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-                <TouchableOpacity onPress={() => navigation.navigate("Home")} style={styles.backButton}>
-                    <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+                <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
+                    <MaterialCommunityIcons name="menu" size={28} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: colors.text }]}>Friend Requests</Text>
-                <View style={{ width: 24 }} />
+                <View style={{ width: 28 }} />
             </View>
 
             {loading ? (

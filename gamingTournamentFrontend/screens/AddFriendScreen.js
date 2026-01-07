@@ -84,6 +84,15 @@ export default function AddFriendScreen({ navigation }) {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            {/* Header */}
+            <View style={[styles.header, { backgroundColor: colors.background }]}>
+                <TouchableOpacity onPress={() => navigation.openDrawer()}>
+                    <MaterialCommunityIcons name="menu" size={28} color={colors.text} />
+                </TouchableOpacity>
+                <Text style={[styles.headerTitle, { color: colors.text }]}>Find Players</Text>
+                <View style={{ width: 28 }} />
+            </View>
+
             <View style={styles.searchContainer}>
                 <TextInput
                     style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
@@ -118,7 +127,18 @@ export default function AddFriendScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 16,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        marginBottom: 10,
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
     },
     searchContainer: {
         flexDirection: 'row',

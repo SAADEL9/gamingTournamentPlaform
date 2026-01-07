@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, ScrollView, TextInput, Image, Alert, ActivityIndicator } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { signOut, updateProfile } from "firebase/auth";
 import { auth } from "../firebase";
 import { useNavigation } from "@react-navigation/native";
@@ -130,7 +131,16 @@ export default function ProfileScreen() {
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            {/* Main Header */}
+            <View style={[styles.navHeader, { backgroundColor: colors.background }]}>
+                <TouchableOpacity onPress={() => navigation.openDrawer()}>
+                    <MaterialCommunityIcons name="menu" size={28} color={colors.text} />
+                </TouchableOpacity>
+                <Text style={[styles.navTitle, { color: colors.text }]}>Profile</Text>
+                <View style={{ width: 28 }} />
+            </View>
+
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={isEditing ? pickImage : null} disabled={!isEditing} style={styles.avatarContainer}>
@@ -257,13 +267,24 @@ export default function ProfileScreen() {
                     </View>
                 </View>
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    navHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+    },
+    navTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
     },
     scrollContent: {
         flexGrow: 1,
