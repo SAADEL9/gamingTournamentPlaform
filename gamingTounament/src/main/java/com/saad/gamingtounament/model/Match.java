@@ -16,11 +16,18 @@ public class Match {
     private String id;
     private String tournamentId;
     private int round;
-    private String player1Id;
-    private String player2Id;
+    private String player1Id; // Store email
+    private String player1Name;
+    private String player2Id; // Store email
+    private String player2Name;
     private Integer score1;
     private Integer score2;
     private String winnerId;
+    private String winnerName;
     private String status; // PENDING, IN_PROGRESS, COMPLETED
     private String nextMatchId;
+
+    // New fields for confirmation flow
+    private String scoreSubmittedBy; // Email of user who submitted
+    private boolean confirmed; // True if opponent confirmed
 }

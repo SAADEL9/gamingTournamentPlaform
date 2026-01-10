@@ -16,4 +16,8 @@ public interface FriendRequestService {
 
     public List<com.saad.gamingtounament.dto.FriendRequestDTO> getAllRequestsByUser(String id);
 
+    public void acceptFriendRequest(String requestId);
+
+    public void rejectFriendRequest(String requestId);
+
 }

@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, FlatList, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from "../context/ThemeContext";
 import { auth } from "../firebase";
+import api from "../api/api";
+import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../constants/theme";
 
 const { width } = Dimensions.get('window');
@@ -11,6 +13,30 @@ const { width } = Dimensions.get('window');
 export default function HomeScreen({ navigation }) {
   const { colors, theme } = useTheme();
   const user = auth.currentUser;
+  const [nextMatch, setNextMatch] = useState(null);
+  const [loadingMatch, setLoadingMatch] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchNextMatch();
+    }, [user])
+  );
+
+  const fetchNextMatch = async () => {
+    if (!user) return;
+    setLoadingMatch(true);
+    try {
+      const response = await api.get(`/matches/user/${user.email}`);
+      const matches = response.data;
+      // Get the first PENDING match
+      const upcoming = matches.find(m => m.status === 'PENDING' || m.status === 'READY');
+      setNextMatch(upcoming);
+    } catch (error) {
+      console.error("Error fetching next match:", error);
+    } finally {
+      setLoadingMatch(false);
+    }
+  };
 
   // Mock Data for Games
   const games = [
@@ -88,6 +114,28 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Next Match Notification */}
+        {nextMatch && (
+          <TouchableOpacity
+            style={[styles.nextMatchCard, { backgroundColor: colors.info + '15', borderColor: colors.info }]}
+            onPress={() => navigation.navigate('TournamentDetail', { id: nextMatch.tournamentId })}
+          >
+            <View style={[styles.nextMatchBadge, { backgroundColor: colors.info }]}>
+              <MaterialCommunityIcons name="sword-cross" size={16} color="#FFF" />
+              <Text style={styles.nextMatchBadgeText}>NEXT MATCH</Text>
+            </View>
+            <View style={styles.nextMatchInfo}>
+              <Text style={[styles.nextMatchOpponent, { color: colors.text }]}>
+                Vs. {nextMatch.player1Id === user.email ? nextMatch.player2Name : nextMatch.player1Name}
+              </Text>
+              <Text style={[styles.nextMatchStatus, { color: colors.textSecondary }]}>
+                Ready to play! Tap to enter results.
+              </Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={colors.info} />
+          </TouchableOpacity>
+        )}
 
         {/* Quick Actions (Replacing Dashboard Grid with streamlined buttons) */}
         <View style={styles.quickActions}>
@@ -344,5 +392,38 @@ const styles = StyleSheet.create({
   promoLink: {
     fontWeight: '700',
     fontSize: 14
+  },
+  nextMatchCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 24,
+    gap: 12
+  },
+  nextMatchBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4
+  },
+  nextMatchBadgeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '900'
+  },
+  nextMatchInfo: {
+    flex: 1
+  },
+  nextMatchOpponent: {
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  nextMatchStatus: {
+    fontSize: 12,
+    marginTop: 2
   }
 });

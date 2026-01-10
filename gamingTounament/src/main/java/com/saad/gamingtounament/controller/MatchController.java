@@ -23,10 +23,6 @@ public class MatchController {
     @Autowired
     private TournamentService tournamentService;
 
-    /**
-     * Generate bracket for a tournament
-     * POST /api/matches/generate/{tournamentId}
-     */
     @PostMapping("/generate/{tournamentId}")
     public ResponseEntity<List<Match>> generateBracket(@PathVariable String tournamentId) {
         try {
@@ -44,10 +40,6 @@ public class MatchController {
         }
     }
 
-    /**
-     * Get all matches for a tournament
-     * GET /api/matches/tournament/{tournamentId}
-     */
     @GetMapping("/tournament/{tournamentId}")
     public ResponseEntity<List<Match>> getMatchesByTournament(@PathVariable String tournamentId) {
         try {
@@ -59,25 +51,51 @@ public class MatchController {
         }
     }
 
-    /**
-     * Update match score
-     * POST /api/matches/{matchId}/score
-     * Body: { "score1": 10, "score2": 5 }
-     */
     @PostMapping("/{matchId}/score")
     public ResponseEntity<Match> updateScore(
             @PathVariable String matchId,
-            @RequestBody Map<String, Integer> scores) {
+            @RequestBody Map<String, Object> payload) {
         try {
-            Integer score1 = scores.get("score1");
-            Integer score2 = scores.get("score2");
+            Integer score1 = (Integer) payload.get("score1");
+            Integer score2 = (Integer) payload.get("score2");
+            String submittedBy = (String) payload.get("submittedBy"); // Email
 
-            if (score1 == null || score2 == null) {
+            if (score1 == null || score2 == null || submittedBy == null) {
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
 
-            Match updatedMatch = matchService.updateMatchScore(matchId, score1, score2);
+            Match updatedMatch = matchService.updateMatchScore(matchId, score1, score2, submittedBy);
             return new ResponseEntity<>(updatedMatch, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping("/{matchId}/confirm")
+    public ResponseEntity<Match> confirmScore(
+            @PathVariable String matchId,
+            @RequestBody Map<String, String> payload) {
+        try {
+            String confirmedBy = payload.get("confirmedBy"); // Email
+
+            if (confirmedBy == null) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+
+            Match updatedMatch = matchService.confirmMatchScore(matchId, confirmedBy);
+            return new ResponseEntity<>(updatedMatch, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/user/{email}")
+    public ResponseEntity<List<Match>> getMatchesByUser(@PathVariable String email) {
+        try {
+            List<Match> matches = matchService.getMatchesByUser(email);
+            return new ResponseEntity<>(matches, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);

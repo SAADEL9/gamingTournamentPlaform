@@ -21,9 +21,27 @@ export default function AddFriendScreen({ navigation }) {
     const { colors, theme } = useTheme();
     const [searchQuery, setSearchQuery] = useState("");
     const [results, setResults] = useState([]);
+    const [friends, setFriends] = useState([]);
 
     const [loading, setLoading] = useState(false);
     const user = auth.currentUser;
+
+    // Fetch friends to know who to disable
+    const fetchFriends = async () => {
+        if (!user) return;
+        try {
+            const res = await api.get(`/friendship/list/${user.uid}`);
+            setFriends(res.data || []);
+        } catch (e) {
+            console.log("Error fetching friends list", e);
+        }
+    };
+
+    // Reload friends when screen is focused
+    React.useEffect(() => {
+        fetchFriends();
+    }, []);
+
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
 
@@ -32,6 +50,8 @@ export default function AddFriendScreen({ navigation }) {
             const response = await api.get(`/user/search?query=${searchQuery}`);
             const filteredResults = response.data.filter(u => u.firebaseUid !== auth.currentUser?.uid);
             setResults(filteredResults);
+            // Also refresh friends to be sure
+            fetchFriends();
         } catch (error) {
             console.error(error);
             Alert.alert("Error", error.response?.data?.message || error.message || "Failed to search users");
@@ -52,7 +72,11 @@ export default function AddFriendScreen({ navigation }) {
                 senderid: user.uid,
                 receiverid: item.firebaseUid
             });
-            Alert.alert("Success", "Friend request sent!");
+            Alert.alert(
+                "Request Sent",
+                `A friend request has been successfully sent.`,
+                [{ text: "Great!" }]
+            );
         }
 
         catch (error) {
@@ -63,24 +87,34 @@ export default function AddFriendScreen({ navigation }) {
         }
     };
 
-    const renderItem = ({ item }) => (
-        <View style={[styles.userCard, { backgroundColor: colors.card, shadowColor: theme === 'dark' ? '#000' : '#ccc' }]}>
-            <Image
-                source={{ uri: item.photoUrl || 'https://via.placeholder.com/50' }}
-                style={styles.avatar}
-            />
-            <View style={styles.userInfo}>
-                <Text style={[styles.userName, { color: colors.text }]}>{item.displayName || "Unknown User"}</Text>
-                <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{item.email}</Text>
+    const renderItem = ({ item }) => {
+        const isFriend = friends.some(f => f.firebaseUid === item.firebaseUid);
+
+        return (
+            <View style={[styles.userCard, { backgroundColor: colors.card, shadowColor: theme === 'dark' ? '#000' : '#ccc' }]}>
+                <Image
+                    source={{ uri: item.photoUrl || 'https://via.placeholder.com/50' }}
+                    style={styles.avatar}
+                />
+                <View style={styles.userInfo}>
+                    <Text style={[styles.userName, { color: colors.text }]}>{item.displayName || "Unknown User"}</Text>
+                    <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{item.email}</Text>
+                </View>
+                {isFriend ? (
+                    <View style={[styles.addButton, { backgroundColor: colors.success }]}>
+                        <MaterialCommunityIcons name="check" size={16} color="#FFF" />
+                    </View>
+                ) : (
+                    <TouchableOpacity
+                        style={[styles.addButton, { backgroundColor: colors.primary }]}
+                        onPress={() => handleAddFriend(user, item)}
+                    >
+                        <Text style={styles.addButtonText}>Invite</Text>
+                    </TouchableOpacity>
+                )}
             </View>
-            <TouchableOpacity
-                style={[styles.addButton, { backgroundColor: colors.success }]}
-                onPress={() => handleAddFriend(user, item)}
-            >
-                <Text style={styles.addButtonText}>Add</Text>
-            </TouchableOpacity>
-        </View>
-    );
+        );
+    };
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>

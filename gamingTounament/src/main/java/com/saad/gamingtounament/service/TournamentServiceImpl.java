@@ -1,6 +1,9 @@
 package com.saad.gamingtounament.service;
 
 import com.saad.gamingtounament.model.Tournament;
+import com.saad.gamingtounament.model.Team;
+import com.saad.gamingtounament.service.TeamService;
+import com.saad.gamingtounament.service.TeamRequestService;
 import com.saad.gamingtounament.repository.TournamentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,10 +18,15 @@ import java.util.stream.Collectors;
 public class TournamentServiceImpl implements TournamentService {
 
     private final TournamentRepository tournamentRepository;
+    private final TeamService teamService;
+    private final TeamRequestService teamRequestService;
 
     @Autowired
-    public TournamentServiceImpl(TournamentRepository tournamentRepository) {
+    public TournamentServiceImpl(TournamentRepository tournamentRepository, TeamService teamService,
+            TeamRequestService teamRequestService) {
         this.tournamentRepository = tournamentRepository;
+        this.teamService = teamService;
+        this.teamRequestService = teamRequestService;
         System.out.println("TournamentService initialized.");
     }
 
@@ -26,6 +34,7 @@ public class TournamentServiceImpl implements TournamentService {
     public List<Tournament> allTournaments() {
         return tournamentRepository.findAll();
     }
+
     @Override
     public List<Tournament> getTournamentsByUser(String userEmail) {
         return allTournaments().stream()
@@ -37,6 +46,7 @@ public class TournamentServiceImpl implements TournamentService {
                 })
                 .collect(Collectors.toList());
     }
+
     @Override
     public Optional<Tournament> singleTournament(String id) {
         return tournamentRepository.findById(id);
@@ -93,8 +103,6 @@ public class TournamentServiceImpl implements TournamentService {
                         throw new RuntimeException("Tournament is full");
                     }
                 } else {
-                    // User already joined, do nothing or throw?
-                    // If returning void, maybe throw to inform user.
                     throw new RuntimeException("You have already joined this tournament");
                 }
             } else {
@@ -103,34 +111,35 @@ public class TournamentServiceImpl implements TournamentService {
                     tournament.setTeams(new ArrayList<>());
                 }
 
-                // Check if current user is already in any team
+                // Check if current user is already in any team in THIS tournament
                 boolean joined = tournament.getTeams().stream()
                         .filter(t -> t.getMembers() != null)
                         .anyMatch(t -> t.getMembers().contains(userEmail));
 
                 if (!joined) {
                     if (tournament.getTeams().size() < tournament.getMaxPlayers()) {
-                        // Ensure teammates list is mutable and handles input
-                        List<String> finalTeammates = new ArrayList<>();
-                        if (teammatesInput != null) {
-                            finalTeammates.addAll(teammatesInput);
-                        }
+                        // 1. Create the team with ONLY the captain
+                        List<String> initialMembers = new ArrayList<>();
+                        initialMembers.add(userEmail);
 
-                        // Add captain if not already present (though frontend usually excludes captain)
-                        if (!finalTeammates.contains(userEmail)) {
-                            finalTeammates.add(userEmail);
-                        }
+                        Team newTeam = teamService.createTeam(teamName, initialMembers);
 
-                        // Validate team size
-                        if (finalTeammates.size() != tournament.getTeamSize()) {
-                            throw new RuntimeException(
-                                    "Team size must be " + tournament.getTeamSize() + ". You have "
-                                            + finalTeammates.size() + " members (including yourself).");
-                        }
-
-                        com.saad.gamingtounament.model.Team newTeam = new com.saad.gamingtounament.model.Team(teamName,
-                                finalTeammates);
+                        // 2. Add the team to the tournament
                         tournament.getTeams().add(newTeam);
+
+                        // 3. Send invitations to teammates
+                        if (teammatesInput != null) {
+                            for (String teammateEmail : teammatesInput) {
+                                if (teammateEmail.equals(userEmail))
+                                    continue; // Skip captain
+                                try {
+                                    teamRequestService.createTeamRequest(newTeam.getId(), userEmail, teammateEmail);
+                                } catch (Exception e) {
+                                    System.out.println("Could not invite " + teammateEmail + ": " + e.getMessage());
+                                    // We continue for other potential teammates
+                                }
+                            }
+                        }
 
                         if (tournament.getTeams().size() == tournament.getMaxPlayers()) {
                             tournament.setStatus("In Progress");
@@ -141,7 +150,7 @@ public class TournamentServiceImpl implements TournamentService {
                         throw new RuntimeException("Tournament is full");
                     }
                 } else {
-                    throw new RuntimeException("You are already in a team");
+                    throw new RuntimeException("You are already in a team for this tournament.");
                 }
             }
         } else {

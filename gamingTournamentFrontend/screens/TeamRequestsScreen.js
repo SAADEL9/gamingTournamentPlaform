@@ -8,7 +8,7 @@ import { auth } from '../firebase';
 import { useTheme } from '../context/ThemeContext';
 import { SHADOWS } from '../constants/theme';
 
-export default function FriendRequestsScreen() {
+export default function TeamRequestsScreen() {
     const { colors } = useTheme();
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -18,57 +18,68 @@ export default function FriendRequestsScreen() {
     useEffect(() => {
         fetchRequests();
     }, []);
-    const acceptRequest = async (id) => {
-        try {
-            await api.post(`/friend-request/accept/${id}`);
-            Alert.alert("Success", "Friend request accepted.");
-            fetchRequests();
-        } catch (error) {
-            console.error("Error accepting the friend request:", error);
-            Alert.alert("Error", "Failed to accept friend request.");
-        }
-    }
-    const rejectRequest = async (id) => {
-        try {
-            await api.post(`/friend-request/reject/${id}`);
-            Alert.alert("Success", "Friend request rejected.");
-            fetchRequests();
-        } catch (error) {
-            console.error("Error rejecting the friend request:", error);
-            Alert.alert("Error", "Failed to reject friend request.");
-        }
-    }
+
     const fetchRequests = async () => {
+        if (!user) return;
         try {
-            const response = await api.get(`/friend-request/list/${user.uid}`);
+            const response = await api.get(`/team-request/list/${user.email}`);
             setRequests(response.data);
         } catch (error) {
-            console.error("Error fetching friend requests:", error);
-            Alert.alert("Error", "Failed to load friend requests.");
+            console.error("Error fetching team requests:", error);
+            Alert.alert("Error", "Failed to load team invitations.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const acceptRequest = async (id) => {
+        try {
+            await api.post(`/team-request/accept/${id}`);
+            Alert.alert("Success", "You have joined the team!");
+            fetchRequests();
+        } catch (error) {
+            console.error("Error accepting team request:", error);
+            Alert.alert("Error", "Failed to accept invitation.");
+        }
+    };
+
+    const rejectRequest = async (id) => {
+        try {
+            await api.post(`/team-request/reject/${id}`);
+            Alert.alert("Success", "Invitation rejected.");
+            fetchRequests();
+        } catch (error) {
+            console.error("Error rejecting team request:", error);
+            Alert.alert("Error", "Failed to reject invitation.");
         }
     };
 
     const renderItem = ({ item }) => (
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.cardHeader}>
-                <MaterialCommunityIcons name="account-circle" size={40} color={colors.primary} />
-                <View style={{ marginLeft: 10, flex: 1 }}>
-                    <Text style={[styles.senderText, { color: colors.textSecondary }]}>Request from</Text>
-                    <Text style={[styles.senderId, { color: colors.text }]}>{item.senderName || item.senderId}</Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{item.senderEmail}</Text>
+                <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                    <MaterialCommunityIcons name="account-group" size={30} color={colors.primary} />
+                </View>
+                <View style={{ marginLeft: 12, flex: 1 }}>
+                    <Text style={[styles.teamName, { color: colors.text }]}>{item.teamName}</Text>
+                    <Text style={[styles.senderText, { color: colors.textSecondary }]}>Invited by {item.senderEmail}</Text>
                 </View>
             </View>
 
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
             <View style={styles.actions}>
-                <TouchableOpacity style={[styles.acceptButton, { backgroundColor: colors.success }]} onPress={() => acceptRequest(item.id)}>
-                    <Text style={styles.buttonText} >Accept</Text>
+                <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: colors.success }]}
+                    onPress={() => acceptRequest(item.id)}
+                >
+                    <Text style={styles.buttonText}>Join Team</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.rejectButton, { backgroundColor: colors.error }]} onPress={() => rejectRequest(item.id)}>
-                    <Text style={styles.buttonText}>Decline</Text>
+                <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: colors.error + '20' }]}
+                    onPress={() => rejectRequest(item.id)}
+                >
+                    <Text style={[styles.buttonText, { color: colors.error }]}>Decline</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -78,10 +89,10 @@ export default function FriendRequestsScreen() {
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Header */}
             <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-                <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
-                    <MaterialCommunityIcons name="menu" size={28} color={colors.text} />
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <MaterialCommunityIcons name="arrow-left" size={28} color={colors.text} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: colors.text }]}>Friend Requests</Text>
+                <Text style={[styles.headerTitle, { color: colors.text }]}>Team Invitations</Text>
                 <View style={{ width: 28 }} />
             </View>
 
@@ -92,13 +103,13 @@ export default function FriendRequestsScreen() {
             ) : (
                 <FlatList
                     data={requests}
-                    keyExtractor={(item) => String(item.id || Math.random())}
+                    keyExtractor={(item) => String(item.id)}
                     renderItem={renderItem}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
-                            <MaterialCommunityIcons name="account-off-outline" size={60} color={colors.textMuted} />
-                            <Text style={[styles.emptyText, { color: colors.textMuted }]}>No pending requests.</Text>
+                            <MaterialCommunityIcons name="email-outline" size={60} color={colors.textMuted} />
+                            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No pending team invitations.</Text>
                         </View>
                     }
                 />
@@ -118,7 +129,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 15,
         borderBottomWidth: 1,
-        // Removed bad padding and replaced with standard view styling
     },
     headerTitle: {
         fontSize: 18,
@@ -134,51 +144,54 @@ const styles = StyleSheet.create({
     },
     card: {
         padding: 16,
-        marginBottom: 12,
+        marginBottom: 16,
         borderRadius: 16,
-        ...SHADOWS.light,
         borderWidth: 1,
+        ...SHADOWS.light,
     },
     cardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12
+        marginBottom: 16
+    },
+    iconContainer: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    teamName: {
+        fontSize: 18,
+        fontWeight: 'bold',
     },
     senderText: {
-        fontSize: 12,
-    },
-    senderId: {
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontSize: 13,
     },
     divider: {
         height: 1,
-        marginBottom: 12
+        marginBottom: 16
     },
     actions: {
         flexDirection: 'row',
-        justifyContent: 'flex-end',
-        gap: 10
+        gap: 12
     },
-    acceptButton: {
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-    },
-    rejectButton: {
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 8,
+    actionButton: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     buttonText: {
         color: '#fff',
         fontWeight: 'bold',
-        fontSize: 12
+        fontSize: 14
     },
     emptyContainer: {
         alignItems: 'center',
-        marginTop: 50,
-        gap: 10
+        marginTop: 60,
+        gap: 16
     },
     emptyText: {
         textAlign: 'center',

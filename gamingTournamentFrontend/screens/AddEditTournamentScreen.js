@@ -18,15 +18,7 @@ export default function AddEditTournamentScreen({ navigation, route }) {
     // Team Settings
     const [isTeamMode, setIsTeamMode] = useState(false);
     const [teamSize, setTeamSize] = useState("2"); // Default to 2 for teams
-    const handleGenerateBracket = async (id) => {
-        try {
-            await api.post(`/tournament/generate-bracket/${id}`);
-            window.alert("Generated\n\nThe bracket has been generated.");
-        } catch (err) {
-            console.error(err);
-            window.alert("Error\n\nFailed to generate bracket");
-        }
-    }
+
     useEffect(() => {
         if (isEditing) {
             setName(tournamentToEdit.name);
@@ -192,12 +184,7 @@ export default function AddEditTournamentScreen({ navigation, route }) {
             >
                 <Text style={styles.submitButtonText}>{loading ? "Saving..." : isEditing ? "Update Tournament" : "Create Tournament"}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
 
-                onPress={() => handleGenerateBracket(item.id)}
-            >
-                <Text >generate bracket</Text>
-            </TouchableOpacity>
         </ScrollView>
     );
 }

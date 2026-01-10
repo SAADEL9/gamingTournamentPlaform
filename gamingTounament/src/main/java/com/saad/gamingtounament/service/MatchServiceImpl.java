@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class MatchServiceImpl implements MatchService {
@@ -19,8 +20,17 @@ public class MatchServiceImpl implements MatchService {
     @Autowired
     private MatchRepository matchRepository;
 
+    @Autowired
+    private com.saad.gamingtounament.repository.UserRepository userRepository;
+
+    @Autowired
+    private com.saad.gamingtounament.repository.TournamentRepository tournamentRepository;
+
     @Override
     public List<Match> createMatches(Tournament tournament) {
+        // Clear existing matches to avoid duplicates
+        matchRepository.deleteByTournamentId(tournament.getId());
+
         List<String> participants = new ArrayList<>(tournament.getParticipants());
         if (participants.size() < 2)
             return new ArrayList<>();
@@ -49,7 +59,6 @@ public class MatchServiceImpl implements MatchService {
             rounds.add(roundMatches);
         }
 
-        // 2. Save all matches to get IDs and fill flat list
         for (List<Match> round : rounds) {
             for (Match m : round) {
                 matchRepository.save(m);
@@ -57,8 +66,6 @@ public class MatchServiceImpl implements MatchService {
             }
         }
 
-        // 3. Link matches across rounds using nextMatchId
-        // rounds is 0-indexed (0=Round 1, 1=Round 2...)
         for (int r = 0; r < totalRounds - 1; r++) {
             List<Match> currentRound = rounds.get(r);
             List<Match> nextRound = rounds.get(r + 1);
@@ -80,7 +87,9 @@ public class MatchServiceImpl implements MatchService {
             String p2 = (pIndex < n) ? participants.get(pIndex++) : BYE;
 
             m.setPlayer1Id(p1);
+            m.setPlayer1Name(getPlayerName(p1));
             m.setPlayer2Id(p2);
+            m.setPlayer2Name(getPlayerName(p2));
 
             processMatchOutcome(m);
         }
@@ -88,26 +97,77 @@ public class MatchServiceImpl implements MatchService {
         return allMatches;
     }
 
+    private String getPlayerName(String emailOrBye) {
+        if (BYE.equals(emailOrBye))
+            return BYE;
+        return userRepository.findByEmail(emailOrBye)
+                .map(com.saad.gamingtounament.model.User::getDisplayName)
+                .orElse(emailOrBye);
+    }
+
     @Override
-    public Match updateMatchScore(String matchId, Integer score1, Integer score2) {
+    public Match updateMatchScore(String matchId, Integer score1, Integer score2, String submittedBy) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new RuntimeException("Match not found"));
+
         match.setScore1(score1);
         match.setScore2(score2);
+        match.setScoreSubmittedBy(submittedBy);
+        match.setConfirmed(false);
+        match.setStatus("PENDING_CONFIRMATION");
+
+        return matchRepository.save(match);
+    }
+
+    @Override
+    public Match confirmMatchScore(String matchId, String confirmedBy) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new RuntimeException("Match not found"));
+
+        if (!"PENDING_CONFIRMATION".equals(match.getStatus())) {
+            throw new RuntimeException("Match is not waiting for confirmation");
+        }
+
+        // Ensure confirm is done by the OTHER player
+        // (In a real app, strict checks. Here just assume controller validated access
+        // or check simply)
+        if (confirmedBy.equals(match.getScoreSubmittedBy())) {
+            throw new RuntimeException("You cannot confirm your own submission.");
+        }
+
+        match.setConfirmed(true);
         match.setStatus("COMPLETED");
 
+        Integer score1 = match.getScore1();
+        Integer score2 = match.getScore2();
+
         String winnerId = "";
+        String winnerName = "";
         if (score1 > score2) {
             winnerId = match.getPlayer1Id();
+            winnerName = match.getPlayer1Name();
         } else if (score1 < score2) {
             winnerId = match.getPlayer2Id();
+            winnerName = match.getPlayer2Name();
         }
         match.setWinnerId(winnerId);
+        match.setWinnerName(winnerName);
         matchRepository.save(match);
 
         // Advance winner to next match
         if (match.getNextMatchId() != null) {
-            advanceWinner(match, winnerId);
+            advanceWinner(match, winnerId, winnerName);
+        } else {
+            // Tournament ends here (Final Match)
+            if (!BYE.equals(winnerId)) {
+                Tournament t = tournamentRepository.findById(match.getTournamentId()).orElse(null);
+                if (t != null) {
+                    t.setWinnerId(winnerId);
+                    t.setWinnerName(winnerName);
+                    t.setStatus("COMPLETED");
+                    tournamentRepository.save(t);
+                }
+            }
         }
 
         return match;
@@ -144,27 +204,29 @@ public class MatchServiceImpl implements MatchService {
             match.setScore1(1);
             match.setScore2(0);
             match.setWinnerId(p1);
+            match.setWinnerName(match.getPlayer1Name());
             matchRepository.save(match);
-            advanceWinner(match, p1);
+            advanceWinner(match, p1, match.getPlayer1Name());
         } else if (p1Bye && !p2Bye) {
             // BYE vs P2 -> P2 wins automatically
             match.setStatus("COMPLETED");
             match.setScore1(0);
             match.setScore2(1);
             match.setWinnerId(p2);
+            match.setWinnerName(match.getPlayer2Name());
             matchRepository.save(match);
-            advanceWinner(match, p2);
+            advanceWinner(match, p2, match.getPlayer2Name());
         } else {
             // BYE vs BYE -> Double Bye (Void match) -> Winner is BYE
             match.setStatus("COMPLETED");
             match.setWinnerId(BYE);
+            match.setWinnerName(BYE);
             matchRepository.save(match);
-            advanceWinner(match, BYE);
+            advanceWinner(match, BYE, BYE);
         }
     }
 
-    // Helper to push a winner (or BYE) to the next match
-    private void advanceWinner(Match currentMatch, String winnerId) {
+    private void advanceWinner(Match currentMatch, String winnerId, String winnerName) {
         if (currentMatch.getNextMatchId() == null)
             return;
 
@@ -172,11 +234,13 @@ public class MatchServiceImpl implements MatchService {
                 .orElse(null);
 
         if (nextMatch != null) {
-            // Fill the first empty slot
+
             if (nextMatch.getPlayer1Id() == null) {
                 nextMatch.setPlayer1Id(winnerId);
+                nextMatch.setPlayer1Name(winnerName);
             } else if (nextMatch.getPlayer2Id() == null) {
                 nextMatch.setPlayer2Id(winnerId);
+                nextMatch.setPlayer2Name(winnerName);
             } else {
                 // Both slots full or logic error. Assuming full.
             }
@@ -188,5 +252,15 @@ public class MatchServiceImpl implements MatchService {
                 processMatchOutcome(nextMatch);
             }
         }
+    }
+
+    @Override
+    public List<Match> getMatchesByUser(String email) {
+        // This is not the most efficient way (fetching all matches),
+        // but given the scale and existing repository methods, it works without adding
+        // custom queries to the repository yet.
+        return matchRepository.findAll().stream()
+                .filter(m -> email.equals(m.getPlayer1Id()) || email.equals(m.getPlayer2Id()))
+                .collect(Collectors.toList());
     }
 }

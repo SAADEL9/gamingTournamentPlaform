@@ -11,6 +11,10 @@ import MyTournamentsScreen from '../screens/myTournamentsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import FriendRequestsScreen from '../screens/FriendRequestsScreen';
 import AddFriendScreen from '../screens/AddFriendScreen';
+import FriendsScreen from '../screens/FriendsScreen';
+import CreateTeamScreen from '../screens/CreateTeamScreen';
+import TeamRequestsScreen from '../screens/TeamRequestsScreen';
+import MyTeamScreen from '../screens/MyTeamScreen';
 
 const Drawer = createDrawerNavigator();
 
@@ -75,7 +79,7 @@ const CustomDrawerContent = (props) => {
                     <DrawerItem
                         label="Friends"
                         icon={({ color }) => <MaterialCommunityIcons name="account-multiple" color={color} size={24} />}
-                        onPress={() => props.navigation.navigate('FriendRequests')}
+                        onPress={() => props.navigation.navigate('Friends')}
                         labelStyle={styles.drawerLabel}
                         activeTintColor={colors.primary}
                         inactiveTintColor={colors.textSecondary}
@@ -139,8 +143,12 @@ export default function DrawerNavigator() {
             <Drawer.Screen name="Tournaments" component={TournamentsScreen} options={{ title: 'Browse Tournaments' }} />
             <Drawer.Screen name="myTournaments" component={MyTournamentsScreen} options={{ title: 'My Tournaments' }} />
             <Drawer.Screen name="Profile" component={ProfileScreen} />
-            <Drawer.Screen name="FriendRequests" component={FriendRequestsScreen} options={{ title: 'Friends' }} />
+            <Drawer.Screen name="FriendRequests" component={FriendRequestsScreen} options={{ title: 'Pending Requests' }} />
+            <Drawer.Screen name="Friends" component={FriendsScreen} options={{ title: 'My Friends' }} />
             <Drawer.Screen name="AddFriend" component={AddFriendScreen} options={{ title: 'Find Players' }} />
+            <Drawer.Screen name="CreateTeam" component={CreateTeamScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+            <Drawer.Screen name="TeamRequests" component={TeamRequestsScreen} options={{ drawerItemStyle: { display: 'none' } }} />
+            <Drawer.Screen name="MyTeam" component={MyTeamScreen} options={{ drawerItemStyle: { display: 'none' }, title: "My Team" }} />
         </Drawer.Navigator>
     );
 }

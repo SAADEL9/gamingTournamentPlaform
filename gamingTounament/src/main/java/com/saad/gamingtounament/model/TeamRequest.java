@@ -6,15 +6,16 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.List;
-
-@Document(collection = "Team")
+@Document(collection = "TeamRequest")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Team {
+public class TeamRequest {
     @Id
     private String id;
-    private String name;
-    private List<String> members; // List of user emails
+    private String teamId;
+    private String teamName;
+    private String senderEmail;
+    private String receiverEmail;
+    private String status; // PENDING, ACCEPTED, REJECTED
 }

@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface MatchRepository extends MongoRepository<Match, String> {
     List<Match> findByTournamentId(String tournamentId);
+
+    void deleteByTournamentId(String tournamentId);
 }

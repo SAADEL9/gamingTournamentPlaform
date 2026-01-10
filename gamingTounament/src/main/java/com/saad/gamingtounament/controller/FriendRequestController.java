@@ -36,4 +36,16 @@ public class FriendRequestController {
             @org.springframework.web.bind.annotation.PathVariable String userId) {
         return new ResponseEntity<>(friendRequestService.getAllRequestsByUser(userId), HttpStatus.OK);
     }
+
+    @PostMapping("/accept/{requestId}")
+    public ResponseEntity<Void> acceptRequest(@org.springframework.web.bind.annotation.PathVariable String requestId) {
+        friendRequestService.acceptFriendRequest(requestId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reject/{requestId}")
+    public ResponseEntity<Void> rejectRequest(@org.springframework.web.bind.annotation.PathVariable String requestId) {
+        friendRequestService.rejectFriendRequest(requestId);
+        return ResponseEntity.ok().build();
+    }
 }

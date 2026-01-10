@@ -26,7 +26,12 @@ public class Tournament {
     private List<String> participants; // For 1v1 legacy or simple usage
 
     private int teamSize = 1; // 1 = 1v1, 2 = 2v2, etc.
+    @org.springframework.data.mongodb.core.mapping.DBRef(lazy = true)
     private List<Team> teams;
+
+    // Winner fields
+    private String winnerId;
+    private String winnerName;
 
     public Tournament(String name, String game, LocalDateTime startTime, int maxPlayers, int entryFee, String prize,
             String status) {

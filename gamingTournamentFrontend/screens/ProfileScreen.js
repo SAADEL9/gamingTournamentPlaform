@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, ScrollView, TextInput, Image, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signOut, updateProfile } from "firebase/auth";
@@ -10,6 +10,7 @@ import { storage } from "../firebase";
 import { ref, uploadBytes, getDownloadURL, uploadString } from "firebase/storage";
 import api from "../api/api";
 import { useTheme } from "../context/ThemeContext";
+import { useFocusEffect } from "@react-navigation/native";
 
 const ADMIN_EMAIL = "admin@admin.com";
 
@@ -24,6 +25,7 @@ export default function ProfileScreen() {
     const [photoURL, setPhotoURL] = useState(user?.photoURL || null);
     const [imageBase64, setImageBase64] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [team, setTeam] = useState(null);
 
     useEffect(() => {
         if (user) {
@@ -40,6 +42,25 @@ export default function ProfileScreen() {
         }
     }, [user]);
 
+    useFocusEffect(
+        useCallback(() => {
+            if (user) {
+                fetchMyTeam();
+            }
+        }, [user])
+    );
+
+    const fetchMyTeam = async () => {
+        try {
+            const response = await api.get(`/team/my-team/${user.email}`);
+            if (response.status === 200 && response.data) {
+                setTeam(response.data);
+            }
+        } catch (error) {
+            console.error("Error fetching team:", error);
+        }
+    };
+
     const handleLogout = async () => {
         try {
             await signOut(auth);
@@ -49,13 +70,15 @@ export default function ProfileScreen() {
         }
     };
 
-    const uploadImageAsync = async (base64Image) => {
+    const uploadImageAsync = async (uri) => {
         try {
             const fileRef = ref(storage, `profile_images/${user.uid}/${Date.now()}`);
-            // uploadString requires format 'base64' if the string is raw base64
-            // or 'data_url' if it includes "data:image/..." prefix.
-            // ImagePicker base64 is usually raw.
-            await uploadString(fileRef, base64Image, 'base64');
+
+            // Fix: Converting URI to Blob using fetch to avoid 'Creating blobs from ArrayBuffer' error in React Native
+            const response = await fetch(uri);
+            const blob = await response.blob();
+
+            await uploadBytes(fileRef, blob);
 
             const downloadUrl = await getDownloadURL(fileRef);
             return downloadUrl;
@@ -96,7 +119,8 @@ export default function ProfileScreen() {
         try {
             let url = photoURL;
             if (imageBase64) {
-                url = await uploadImageAsync(imageBase64);
+                // Pass the URI instead of base64
+                url = await uploadImageAsync(photoURL);
             }
 
             await updateProfile(user, {
@@ -208,6 +232,15 @@ export default function ProfileScreen() {
                         <Text style={[styles.value, { color: colors.text }]}>{new Date(user.metadata.creationTime || Date.now()).toLocaleDateString()}</Text>
                     </View>
 
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+                    <View style={styles.infoRow}>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>My Team</Text>
+                        <Text style={[styles.value, { color: team ? colors.primary : colors.textSecondary }]}>
+                            {team ? team.name : "No Team"}
+                        </Text>
+                    </View>
+
                     <View style={{ marginTop: 30 }}>
                         {isEditing ? (
                             <View style={styles.buttonRow}>
@@ -253,10 +286,17 @@ export default function ProfileScreen() {
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
-                                    style={[styles.primaryButton, { backgroundColor: colors.success, marginBottom: 15 }]}
-                                    onPress={() => navigation.navigate('FriendRequests')}
+                                    style={[styles.primaryButton, { backgroundColor: colors.secondary, marginBottom: 15 }]}
+                                    onPress={() => navigation.navigate('MyTeam')}
                                 >
-                                    <Text style={styles.buttonText}>Friend Requests</Text>
+                                    <Text style={styles.buttonText}>My Team</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.primaryButton, { backgroundColor: colors.info, marginBottom: 15 }]}
+                                    onPress={() => navigation.navigate('TeamRequests')}
+                                >
+                                    <Text style={styles.buttonText}>Team Invitations</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity style={[styles.primaryButton, { backgroundColor: colors.error }]} onPress={handleLogout}>
